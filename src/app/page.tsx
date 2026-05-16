@@ -70,6 +70,21 @@ export default function Home() {
       router.push('/login');
       return;
     }
+
+    // Check profile active status
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    if (profile?.role !== 'admin' && profile?.is_active === false) {
+      await supabase.auth.signOut();
+      alert("تم إيقاف حسابك مؤقتاً. يرجى التواصل مع الإدارة لتجديد الاشتراك.");
+      router.push('/login?error=suspended');
+      return;
+    }
+
     setUser(session.user);
     fetchCases(session.user.id);
     fetchLawFiles();

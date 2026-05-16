@@ -161,6 +161,21 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleToggleStatus = async (lawyerId: string, currentStatus: boolean) => {
+    if (!confirm(`هل أنت متأكد من رغبتك في ${currentStatus ? 'إيقاف' : 'تفعيل'} هذا الحساب؟`)) return;
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_active: !currentStatus })
+      .eq('id', lawyerId);
+      
+    if (error) {
+      alert(`خطأ في تحديث الحالة: ${error.message}`);
+    } else {
+      fetchLawyersAndStats(); // refresh the list
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
@@ -204,7 +219,7 @@ export default function AdminDashboard() {
   if (loading) return <div style={{ color: 'var(--text-primary)', padding: '50px', textAlign: 'center' }}>جاري التحميل...</div>;
 
   return (
-    <div style={{ padding: '40px', backgroundColor: 'var(--bg-color)', minHeight: '100vh', color: 'var(--text-primary)' }}>
+    <div style={{ flex: 1, width: '100%', overflowY: 'auto', padding: '40px', backgroundColor: 'var(--bg-color)', minHeight: '100vh', color: 'var(--text-primary)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '1px solid var(--border-color)', paddingBottom: '20px' }}>
         <h1 style={{ color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Database size={28} /> لوحة تحكم الإدارة
@@ -335,6 +350,7 @@ export default function AdminDashboard() {
               <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
                 <th style={{ padding: '10px' }}>اسم المحامي</th>
                 <th style={{ padding: '10px' }}>إجمالي القضايا (المحادثات)</th>
+                <th style={{ padding: '10px', textAlign: 'center' }}>حالة الحساب</th>
               </tr>
             </thead>
             <tbody>
@@ -342,10 +358,27 @@ export default function AdminDashboard() {
                 <tr key={l.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: '15px 10px' }}>{l.full_name}</td>
                   <td style={{ padding: '15px 10px', fontWeight: 'bold', color: 'var(--accent-color)' }}>{l.caseCount}</td>
+                  <td style={{ padding: '15px 10px', textAlign: 'center' }}>
+                    <button 
+                      onClick={() => handleToggleStatus(l.id, l.is_active !== false)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        backgroundColor: l.is_active !== false ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.2)',
+                        color: l.is_active !== false ? '#2ecc71' : '#e74c3c',
+                        minWidth: '80px'
+                      }}
+                    >
+                      {l.is_active !== false ? 'مفعل' : 'معطل'}
+                    </button>
+                  </td>
                 </tr>
               ))}
               {lawyers.length === 0 && (
-                <tr><td colSpan={2} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد محامين حالياً. قم بإنشاء حساب جديد من اللوحة المجاورة.</td></tr>
+                <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد محامين حالياً. قم بإنشاء حساب جديد من اللوحة المجاورة.</td></tr>
               )}
             </tbody>
           </table>

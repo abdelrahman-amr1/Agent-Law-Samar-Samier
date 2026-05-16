@@ -5,6 +5,7 @@ CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   full_name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('admin', 'lawyer')),
+  is_active BOOLEAN DEFAULT true NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -23,6 +24,10 @@ CREATE POLICY "Users can insert their own profile."
 CREATE POLICY "Users can update own profile."
   ON public.profiles FOR UPDATE
   USING ( auth.uid() = id );
+
+CREATE POLICY "Admins can update all profiles"
+  ON public.profiles FOR UPDATE
+  USING ( EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') );
 
 -- 2. Cases Table
 CREATE TABLE public.cases (
