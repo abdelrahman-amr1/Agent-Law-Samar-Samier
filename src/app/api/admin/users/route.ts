@@ -84,3 +84,69 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function PUT(req: Request) {
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await normalSupabase.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { data: profile } = await normalSupabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    const { targetUserId, full_name, password } = await req.json();
+    if (!targetUserId) return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+
+    if (full_name) {
+      const { error } = await supabaseAdmin.from('profiles').update({ full_name }).eq('id', targetUserId);
+      if (error) throw error;
+    }
+
+    if (password) {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, { password });
+      if (error) throw error;
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await normalSupabase.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { data: profile } = await normalSupabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    const url = new URL(req.url);
+    const targetUserId = url.searchParams.get('id');
+    if (!targetUserId) return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+
+    // Delete from auth.users (this should cascade to profiles if foreign key has ON DELETE CASCADE, 
+    // but in Supabase it's better to delete profile first or just delete auth user)
+    // Actually, profiles id REFERENCES auth.users(id), without ON DELETE CASCADE.
+    // So we MUST delete from profiles first, then auth.users.
+    
+    // Delete profile
+    const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', targetUserId);
+    if (profileError) throw profileError;
+
+    // Delete auth user
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
+    if (authDeleteError) throw authDeleteError;
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

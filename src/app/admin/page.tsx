@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Users, FileText, Database, LogOut, UploadCloud, Trash2, Key, Save, UserPlus } from 'lucide-react';
+import { Users, FileText, Database, LogOut, UploadCloud, Trash2, Key, Save, UserPlus, CheckCircle2, AlertCircle, Activity, Briefcase, FileCode, Edit, X } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -17,6 +17,22 @@ export default function AdminDashboard() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('123456');
   const [creatingUser, setCreatingUser] = useState(false);
+
+  // Toast State
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+
+  // Edit Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editTargetId, setEditTargetId] = useState('');
+  const [editFullName, setEditFullName] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -114,9 +130,9 @@ export default function AdminDashboard() {
     
     setSavingKey(false);
     if (error) {
-      alert(`خطأ في حفظ المفتاح: ${error.message}`);
+      showToast(`خطأ في حفظ المفتاح: ${error.message}`, 'error');
     } else {
-      alert('تم حفظ المفتاح بنجاح! سيتم تطبيقه على جميع المحامين تلقائياً.');
+      showToast('تم حفظ المفتاح بنجاح! سيتم تطبيقه على جميع المحامين تلقائياً.', 'success');
     }
   };
 
@@ -149,13 +165,13 @@ export default function AdminDashboard() {
         throw new Error(result.error || 'فشل إنشاء المستخدم');
       }
 
-      alert('تم إضافة المحامي بنجاح!');
+      showToast('تم إضافة المحامي بنجاح!', 'success');
       setNewUserName('');
       setNewUserEmail('');
       setNewUserPassword('123456');
       fetchLawyersAndStats(); // Refresh the list
     } catch (err: any) {
-      alert(`خطأ: ${err.message}`);
+      showToast(`خطأ: ${err.message}`, 'error');
     } finally {
       setCreatingUser(false);
     }
@@ -170,9 +186,53 @@ export default function AdminDashboard() {
       .eq('id', lawyerId);
       
     if (error) {
-      alert(`خطأ في تحديث الحالة: ${error.message}`);
+      showToast(`خطأ في تحديث الحالة: ${error.message}`, 'error');
     } else {
       fetchLawyersAndStats(); // refresh the list
+    }
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsEditing(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ targetUserId: editTargetId, full_name: editFullName, password: editPassword || undefined })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      showToast('تم تحديث بيانات المحامي بنجاح', 'success');
+      setEditModalOpen(false);
+      fetchLawyersAndStats();
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('تحذير: سيتم حذف المحامي نهائياً ولن يتمكن من الدخول مجدداً. هل أنت متأكد؟')) return;
+    setIsDeleting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch(`/api/admin/users?id=${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      showToast('تم حذف الحساب نهائياً', 'success');
+      fetchLawyersAndStats();
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -187,19 +247,19 @@ export default function AdminDashboard() {
 
     if (error) {
       if (error.message.includes('Bucket not found') || error.message.includes('bucket')) {
-         alert('خطأ: لم يتم العثور على Bucket. يرجى الذهاب إلى Supabase Storage وإنشاء Bucket باسم law_files أولاً.');
+         showToast('خطأ: لم يتم العثور على Bucket. يرجى الذهاب إلى Supabase Storage وإنشاء Bucket باسم law_files أولاً.', 'error');
       } else {
-         alert(`Error: ${error.message}`);
+         showToast(`Error: ${error.message}`, 'error');
       }
     } else {
-      alert('تم رفع المرجع السحابي بنجاح');
+      showToast('تم رفع المرجع السحابي بنجاح', 'success');
       fetchLawFiles();
     }
   };
 
   const handleDeleteFile = async (name: string, isLocal: boolean) => {
     if (isLocal) {
-       alert('لا يمكن حذف الملفات المحلية من خلال لوحة التحكم. يجب حذفها يدوياً من مجلد المشروع.');
+       showToast('لا يمكن حذف الملفات المحلية من خلال لوحة التحكم. يجب حذفها يدوياً من مجلد المشروع.', 'error');
        return;
     }
 
@@ -229,6 +289,46 @@ export default function AdminDashboard() {
           <button onClick={handleLogout} style={{ backgroundColor: 'transparent', border: '1px solid #e74c3c', color: '#e74c3c', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
             <LogOut size={16} /> تسجيل خروج
           </button>
+        </div>
+      </div>
+
+      {/* Analytics Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', padding: '15px', borderRadius: '50%' }}>
+            <Users size={24} color="var(--accent-color)" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: 0 }}>{lawyers.length}</h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>إجمالي المحامين</span>
+          </div>
+        </div>
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ backgroundColor: 'rgba(46, 204, 113, 0.1)', padding: '15px', borderRadius: '50%' }}>
+            <Activity size={24} color="#2ecc71" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: 0 }}>{lawyers.filter(l => l.is_active !== false).length}</h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>محامين نشطين</span>
+          </div>
+        </div>
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ backgroundColor: 'rgba(52, 152, 219, 0.1)', padding: '15px', borderRadius: '50%' }}>
+            <Briefcase size={24} color="#3498db" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: 0 }}>{lawyers.reduce((acc, l) => acc + l.caseCount, 0)}</h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>إجمالي القضايا</span>
+          </div>
+        </div>
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ backgroundColor: 'rgba(155, 89, 182, 0.1)', padding: '15px', borderRadius: '50%' }}>
+            <FileCode size={24} color="#9b59b6" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.2rem', color: '#9b59b6', margin: 0, marginTop: '5px' }}>{systemApiKey ? 'متصل' : 'غير متصل'}</h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>الذكاء الاصطناعي</span>
+          </div>
         </div>
       </div>
 
@@ -351,6 +451,7 @@ export default function AdminDashboard() {
                 <th style={{ padding: '10px' }}>اسم المحامي</th>
                 <th style={{ padding: '10px' }}>إجمالي القضايا (المحادثات)</th>
                 <th style={{ padding: '10px', textAlign: 'center' }}>حالة الحساب</th>
+                <th style={{ padding: '10px', textAlign: 'center' }}>إجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -375,14 +476,55 @@ export default function AdminDashboard() {
                       {l.is_active !== false ? 'مفعل' : 'معطل'}
                     </button>
                   </td>
+                  <td style={{ padding: '15px 10px', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                      <button onClick={() => { setEditTargetId(l.id); setEditFullName(l.full_name); setEditPassword(''); setEditModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#3498db', cursor: 'pointer', padding: '5px' }} title="تعديل البيانات"><Edit size={18} /></button>
+                      <button onClick={() => handleDeleteUser(l.id)} disabled={isDeleting} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: isDeleting ? 'not-allowed' : 'pointer', padding: '5px' }} title="حذف الحساب نهائياً"><Trash2 size={18} /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {lawyers.length === 0 && (
-                <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد محامين حالياً. قم بإنشاء حساب جديد من اللوحة المجاورة.</td></tr>
+                <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد محامين حالياً. قم بإنشاء حساب جديد من اللوحة المجاورة.</td></tr>
               )}
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Edit User Modal */}
+      {editModalOpen && (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setEditModalOpen(false); }}>
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, color: 'var(--accent-color)' }}>تعديل بيانات المحامي</h3>
+              <button onClick={() => setEditModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleEditUser} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>الاسم بالكامل</label>
+                <input type="text" required value={editFullName} onChange={e => setEditFullName(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>كلمة المرور الجديدة (اختياري)</label>
+                <input type="password" placeholder="اتركها فارغة لعدم التغيير" value={editPassword} onChange={e => setEditPassword(e.target.value)} />
+              </div>
+              <button type="submit" disabled={isEditing} className="save-btn" style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isEditing ? 'not-allowed' : 'pointer' }}>
+                {isEditing ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification Container */}
+      <div className="toast-container">
+        {toast && (
+          <div className={`toast ${toast.type}`}>
+            {toast.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+            {toast.message}
+          </div>
+        )}
       </div>
     </div>
   );
