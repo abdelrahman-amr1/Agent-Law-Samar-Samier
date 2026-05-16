@@ -53,38 +53,7 @@ export async function uploadToGemini(filePath: string, mimeType: string, apiKey:
   return data.file.uri;
 }
 
-// Global cache for uploaded law files to avoid re-uploading every request
-const uploadedLawFilesCache: Record<string, string> = {};
-
-export async function getLawFileUris(apiKey: string): Promise<string[]> {
-  const fileDir = path.join(process.cwd(), 'file');
-  if (!fs.existsSync(fileDir)) {
-    console.warn("No 'file' directory found for Law PDFs.");
-    return [];
-  }
-
-  const files = fs.readdirSync(fileDir).filter(f => f.endsWith('.pdf') || f.endsWith('.txt'));
-  const uris: string[] = [];
-
-  for (const file of files) {
-    const filePath = path.join(fileDir, file);
-    if (uploadedLawFilesCache[file]) {
-      uris.push(uploadedLawFilesCache[file]);
-      continue;
-    }
-    
-    try {
-      console.log(`Uploading law file to Gemini: ${file}...`);
-      const uri = await uploadToGemini(filePath, file.endsWith('.pdf') ? 'application/pdf' : 'text/plain', apiKey);
-      uploadedLawFilesCache[file] = uri;
-      uris.push(uri);
-    } catch (e) {
-      console.error(`Error uploading ${file}:`, e);
-    }
-  }
-
-  return uris;
-}
+// getLawFileUris removed in favor of Supabase Storage logic in route.ts
 
 export async function generateChatResponse(apiKey: string, prompt: string, systemInstruction: string, fileUris: string[]) {
   const parts = fileUris.map(uri => ({
@@ -98,7 +67,7 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
 
   const body = {
     system_instruction: {
-      parts: { text: systemInstruction }
+      parts: [{ text: systemInstruction }]
     },
     contents: [
       {
@@ -125,7 +94,7 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
   if (!response.ok) {
     const err = await response.text();
     console.error('Gemini API Error:', err);
-    throw new Error('Failed to generate response from Gemini');
+    throw new Error(`مشكلة في الاتصال بـ Gemini: ${err}`);
   }
 
   const data = await response.json();

@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { SYSTEM_PROMPT } from '@/lib/systemPrompt';
-import { getLawFileUris, uploadToGemini, generateChatResponse } from '@/lib/geminiApi';
+import { uploadToGemini, generateChatResponse } from '@/lib/geminiApi';
+import { supabase } from '@/lib/supabase';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+
+// Global cache for uploaded law files to avoid re-uploading every request
+const uploadedLawFilesCache: Record<string, string> = {};
 
 export async function POST(req: Request) {
   try {
@@ -20,13 +24,66 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // 1. Get the pre-uploaded Law Files URIs
-    console.log("Fetching/Uploading Law Files...");
-    const lawFileUris = await getLawFileUris(apiKey);
+    const lawFileUris: string[] = [];
+
+    // --- 1. Fetch Local Law Files from `file/` directory ---
+    console.log("Fetching Local Law Files...");
+    const localFileDir = path.join(process.cwd(), 'file');
+    if (fs.existsSync(localFileDir)) {
+      const localFiles = fs.readdirSync(localFileDir).filter(f => f.endsWith('.pdf') || f.endsWith('.txt'));
+      for (const file of localFiles) {
+        if (uploadedLawFilesCache[file]) {
+          lawFileUris.push(uploadedLawFilesCache[file]);
+          continue;
+        }
+        try {
+          const filePath = path.join(localFileDir, file);
+          console.log(`Uploading local law file to Gemini: ${file}...`);
+          const uri = await uploadToGemini(filePath, file.endsWith('.pdf') ? 'application/pdf' : 'text/plain', apiKey);
+          uploadedLawFilesCache[file] = uri;
+          lawFileUris.push(uri);
+        } catch (e) {
+          console.error(`Error uploading local ${file}:`, e);
+        }
+      }
+    }
+
+    // --- 2. Fetch Cloud Law Files from Supabase Storage ---
+    console.log("Fetching Cloud Law Files from Supabase...");
+    const { data: storageFiles, error: bucketError } = await supabase.storage.from('law_files').list();
+    
+    // Ignore bucket not found error to allow local files to work regardless
+    if (storageFiles && !bucketError) {
+      const validFiles = storageFiles.filter(f => f.name !== '.emptyFolderPlaceholder');
+      for (const sf of validFiles) {
+        if (uploadedLawFilesCache[sf.name]) {
+          lawFileUris.push(uploadedLawFilesCache[sf.name]);
+          continue;
+        }
+
+        const { data: fileData, error: downloadError } = await supabase.storage.from('law_files').download(sf.name);
+        if (fileData && !downloadError) {
+          const buffer = Buffer.from(await fileData.arrayBuffer());
+          const tempPath = path.join(os.tmpdir(), `law_${Date.now()}_${sf.name}`);
+          fs.writeFileSync(tempPath, buffer);
+
+          try {
+            console.log(`Uploading cloud law file to Gemini: ${sf.name}...`);
+            const uri = await uploadToGemini(tempPath, sf.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain', apiKey);
+            uploadedLawFilesCache[sf.name] = uri;
+            lawFileUris.push(uri);
+          } catch (e) {
+            console.error(`Error uploading ${sf.name} to Gemini:`, e);
+          } finally {
+            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+          }
+        }
+      }
+    }
 
     const allFileUris = [...lawFileUris];
 
-    // 2. Upload the Case File if provided
+    // --- 3. Upload User Case File ---
     let tmpFilePath = '';
     if (file) {
       console.log("Uploading User Case File...");
@@ -40,7 +97,7 @@ export async function POST(req: Request) {
       allFileUris.push(caseFileUri);
     }
 
-    // 3. Generate response from Gemini
+    // --- 4. Generate response from Gemini ---
     console.log("Generating Response from Gemini...");
     const responseText = await generateChatResponse(apiKey, message, SYSTEM_PROMPT, allFileUris);
 

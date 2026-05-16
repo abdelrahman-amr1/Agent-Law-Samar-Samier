@@ -1,31 +1,33 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Paperclip, Send, Settings, BookOpen, FileText, Bot, User, Trash2, Plus, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { Paperclip, Send, Settings, BookOpen, FileText, Bot, User, Trash2, Plus, MessageSquare, CheckCircle2, LogOut } from 'lucide-react';
 
 interface Message {
   id: string;
   role: 'user' | 'agent';
   content: string;
-  fileName?: string;
+  file_name?: string;
+  created_at?: string;
 }
 
-interface Session {
+interface Case {
   id: string;
   title: string;
-  messages: Message[];
-  updatedAt: number;
+  created_at: string;
 }
 
 const DEFAULT_WELCOME_MSG: Message = {
-  id: '1',
+  id: 'welcome',
   role: 'agent',
-  content: 'مرحباً بك أستاذي. أنا المساعد القانوني الذكي الخاص بك. قمت بالاطلاع على جميع القوانين والمراجع المرفقة وجاهز لتحليل الدعاوى واستخراج الدفوع. تفضل برفع ملف الدعوى واطلب مني ما تشاء.'
+  content: 'مرحباً بك أستاذي. أنا المساعد القانوني الذكي الخاص بك. تفضل برفع ملف الدعوى واطلب مني ما تشاء.'
 };
 
 const THINKING_STEPS = [
   'جاري قراءة وتحليل وقائع الدعوى...',
-  'جاري البحث في المراجع وقوانين محكمة النقض...',
+  'جاري البحث في المراجع وقوانين محكمة النقض السحابية...',
   'جاري استخراج الدفوع والثغرات القانونية...',
   'جاري صياغة الرد القانوني والتوثيق من المراجع...'
 ];
@@ -33,11 +35,13 @@ const THINKING_STEPS = [
 export default function Home() {
   const [apiKey, setApiKey] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [lawFiles, setLawFiles] = useState<string[]>([]);
+  const [lawFiles, setLawFiles] = useState<any[]>([]);
   
-  // Chat History State
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string>('');
+  // Supabase Auth & Cases State
+  const [user, setUser] = useState<any>(null);
+  const [cases, setCases] = useState<Case[]>([]);
+  const [activeCaseId, setActiveCaseId] = useState<string>('');
+  const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME_MSG]);
   
   const [inputMessage, setInputMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -45,69 +49,101 @@ export default function Home() {
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const thinkingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
-  // Initialize and load sessions
   useEffect(() => {
+    checkAuthAndLoad();
     const savedKey = localStorage.getItem('gemini_api_key');
     if (savedKey) setApiKey(savedKey);
     else setIsModalOpen(true);
-
-    fetch('/api/files')
-      .then(res => res.json())
-      .then(data => { if (data.files) setLawFiles(data.files); })
-      .catch(err => console.error("Failed to load files", err));
-
-    const savedSessions = localStorage.getItem('law_sessions');
-    if (savedSessions) {
-      const parsed = JSON.parse(savedSessions);
-      setSessions(parsed);
-      if (parsed.length > 0) {
-        setActiveSessionId(parsed[0].id);
-      } else {
-        createNewSession();
-      }
-    } else {
-      createNewSession();
-    }
   }, []);
 
-  // Save sessions to localStorage whenever they change
   useEffect(() => {
-    if (sessions.length > 0) {
-      localStorage.setItem('law_sessions', JSON.stringify(sessions));
+    if (activeCaseId) {
+      fetchMessages(activeCaseId);
     }
-  }, [sessions]);
-
-  const activeSession = sessions.find(s => s.id === activeSessionId);
-  const messages = activeSession ? activeSession.messages : [];
+  }, [activeCaseId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, currentStepIndex]);
 
-  const createNewSession = () => {
-    const newSession: Session = {
-      id: Date.now().toString(),
-      title: `قضية جديدة ${sessions.length + 1}`,
-      messages: [DEFAULT_WELCOME_MSG],
-      updatedAt: Date.now()
-    };
-    setSessions(prev => [newSession, ...prev]);
-    setActiveSessionId(newSession.id);
+  const checkAuthAndLoad = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+    setUser(session.user);
+    fetchCases(session.user.id);
+    fetchLawFiles();
   };
 
-  const updateSessionMessages = (newMessages: Message[], titleUpdate?: string) => {
-    setSessions(prev => prev.map(session => {
-      if (session.id === activeSessionId) {
-        return {
-          ...session,
-          messages: newMessages,
-          title: titleUpdate || session.title,
-          updatedAt: Date.now()
-        };
+  const fetchLawFiles = async () => {
+    let allFiles: any[] = [];
+    
+    // Fetch Local Files
+    try {
+      const res = await fetch('/api/files');
+      const data = await res.json();
+      if (data.files) {
+        allFiles = data.files.map((f: string) => ({ name: f, isLocal: true }));
       }
-      return session;
-    }));
+    } catch (e) {
+      console.error("Local files error:", e);
+    }
+
+    // Fetch Cloud Files
+    const { data, error } = await supabase.storage.from('law_files').list();
+    if (data && !error) {
+      const cloudFiles = data.filter(f => f.name !== '.emptyFolderPlaceholder').map(f => ({ name: f.name, isLocal: false }));
+      allFiles = [...allFiles, ...cloudFiles];
+    }
+    
+    setLawFiles(allFiles);
+  };
+
+  const fetchCases = async (userId: string) => {
+    const { data } = await supabase
+      .from('cases')
+      .select('*')
+      .eq('lawyer_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (data && data.length > 0) {
+      setCases(data);
+      setActiveCaseId(data[0].id);
+    }
+  };
+
+  const fetchMessages = async (caseId: string) => {
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('case_id', caseId)
+      .order('created_at', { ascending: true });
+    
+    if (data && data.length > 0) {
+      setMessages(data);
+    } else {
+      setMessages([DEFAULT_WELCOME_MSG]);
+    }
+  };
+
+  const createNewCase = async () => {
+    if (!user) return;
+    const title = `قضية جديدة ${cases.length + 1}`;
+    const { data, error } = await supabase
+      .from('cases')
+      .insert([{ lawyer_id: user.id, title }])
+      .select()
+      .single();
+    
+    if (data && !error) {
+      setCases([data, ...cases]);
+      setActiveCaseId(data.id);
+      setMessages([DEFAULT_WELCOME_MSG]);
+    }
   };
 
   const saveApiKey = () => {
@@ -117,6 +153,11 @@ export default function Home() {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() && !selectedFile) return;
     if (!apiKey) {
@@ -124,73 +165,82 @@ export default function Home() {
       setIsModalOpen(true);
       return;
     }
-
-    const newMessageId = Date.now().toString();
-    const userMessage: Message = {
-      id: newMessageId,
-      role: 'user',
-      content: inputMessage,
-      fileName: selectedFile ? selectedFile.name : undefined
-    };
-
-    const updatedMessages = [...messages, userMessage];
-    
-    // Auto-update title based on first user message if it's currently "قضية جديدة"
-    let newTitle = undefined;
-    if (activeSession?.title.includes('قضية جديدة') && inputMessage.trim()) {
-      newTitle = inputMessage.trim().substring(0, 30) + '...';
+    if (!activeCaseId) {
+      await createNewCase();
+      // Need to wait for activeCaseId to update, so for now we'll just alert
+      if (!activeCaseId) {
+         alert("الرجاء تحديد أو إنشاء قضية أولاً");
+         return;
+      }
     }
 
-    updateSessionMessages(updatedMessages, newTitle);
+    const currentCaseId = activeCaseId;
+    const userMsgContent = inputMessage;
+    const fileName = selectedFile ? selectedFile.name : undefined;
+
+    // 1. Save User Message to Supabase
+    const { data: insertedUserMsg } = await supabase.from('messages').insert([{
+      case_id: currentCaseId,
+      role: 'user',
+      content: userMsgContent,
+      file_name: fileName
+    }]).select().single();
+
+    if (insertedUserMsg) {
+      setMessages(prev => [...prev, insertedUserMsg]);
+    }
+
     setInputMessage('');
     setIsLoading(true);
     setCurrentStepIndex(0);
 
-    // Simulate thinking steps progression
+    // Simulate thinking steps
     thinkingIntervalRef.current = setInterval(() => {
-      setCurrentStepIndex(prev => {
-        if (prev < THINKING_STEPS.length - 1) return prev + 1;
-        return prev;
-      });
+      setCurrentStepIndex(prev => prev < THINKING_STEPS.length - 1 ? prev + 1 : prev);
     }, 2500);
 
     const formData = new FormData();
-    formData.append('message', userMessage.content || 'الرجاء تحليل هذا الملف');
-    if (selectedFile) {
-      formData.append('file', selectedFile);
-    }
+    formData.append('message', userMsgContent || 'الرجاء تحليل هذا الملف');
+    if (selectedFile) formData.append('file', selectedFile);
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'x-api-key': apiKey
-        },
+        headers: { 'x-api-key': apiKey },
         body: formData
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'حدث خطأ غير متوقع');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'حدث خطأ غير متوقع');
-      }
-
-      const agentMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      // 2. Save Agent Message to Supabase
+      const { data: insertedAgentMsg } = await supabase.from('messages').insert([{
+        case_id: currentCaseId,
         role: 'agent',
         content: data.response
-      };
+      }]).select().single();
 
-      updateSessionMessages([...updatedMessages, agentMessage]);
+      if (insertedAgentMsg) {
+        setMessages(prev => [...prev, insertedAgentMsg]);
+      }
+
+      // Update case title if it's the first real message
+      const currentCase = cases.find(c => c.id === currentCaseId);
+      if (currentCase?.title.includes('قضية جديدة') && userMsgContent.trim()) {
+        const newTitle = userMsgContent.trim().substring(0, 30) + '...';
+        await supabase.from('cases').update({ title: newTitle }).eq('id', currentCaseId);
+        setCases(cases.map(c => c.id === currentCaseId ? { ...c, title: newTitle } : c));
+      }
+
       setSelectedFile(null);
     } catch (error: any) {
       console.error(error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      const { data: errData } = await supabase.from('messages').insert([{
+        case_id: currentCaseId,
         role: 'agent',
         content: `❌ عذراً، حدث خطأ: ${error.message}`
-      };
-      updateSessionMessages([...updatedMessages, errorMessage]);
+      }]).select().single();
+      if (errData) setMessages(prev => [...prev, errData]);
     } finally {
       setIsLoading(false);
       setCurrentStepIndex(-1);
@@ -215,37 +265,43 @@ export default function Home() {
     <div className="app-container">
       {/* Sidebar */}
       <aside className="sidebar">
-        <button className="new-case-btn" onClick={createNewSession}>
-          <Plus size={18} /> محادثة جديدة (قضية جديدة)
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ margin: 0 }}><Bot size={20} /> مساحة المحامي</h2>
+          <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }} title="تسجيل الخروج"><LogOut size={18} /></button>
+        </div>
+
+        <button className="new-case-btn" onClick={createNewCase}>
+          <Plus size={18} /> إضافة قضية جديدة
         </button>
 
-        <h2><MessageSquare size={18} /> سجل القضايا</h2>
+        <h2 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}><MessageSquare size={16} /> القضايا الخاصة بك</h2>
         <div className="session-list">
-          {sessions.map(session => (
+          {cases.map(c => (
             <div 
-              key={session.id} 
-              className={`session-item ${session.id === activeSessionId ? 'active' : ''}`}
-              onClick={() => setActiveSessionId(session.id)}
+              key={c.id} 
+              className={`session-item ${c.id === activeCaseId ? 'active' : ''}`}
+              onClick={() => setActiveCaseId(c.id)}
             >
               <div className="session-title">
-                <MessageSquare size={14} color={session.id === activeSessionId ? 'var(--accent-color)' : 'var(--text-secondary)'} />
-                {session.title}
+                <MessageSquare size={14} color={c.id === activeCaseId ? 'var(--accent-color)' : 'var(--text-secondary)'} />
+                {c.title}
               </div>
             </div>
           ))}
+          {cases.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>لا يوجد قضايا حالياً</p>}
         </div>
 
         <div className="section-divider"></div>
 
-        <h2><BookOpen size={18} /> المراجع المرفقة</h2>
+        <h2 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}><BookOpen size={16} /> مراجع النظام (السحابية)</h2>
         <div className="file-list">
           {lawFiles.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>جاري تحميل الملفات...</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>لا يوجد مراجع مرفوعة من الإدارة...</p>
           ) : (
             lawFiles.map((file, idx) => (
               <div key={idx} className="file-item">
                 <FileText size={14} color="var(--accent-color)" />
-                <span title={file}>{file.substring(0, 25)}{file.length > 25 ? '...' : ''}</span>
+                <span title={file.name}>{file.name.substring(0, 25)}{file.name.length > 25 ? '...' : ''}</span>
               </div>
             ))
           )}
@@ -256,7 +312,7 @@ export default function Home() {
             onClick={() => setIsModalOpen(true)}
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
           >
-            <Settings size={16} /> الإعدادات ومفتاح API
+            <Settings size={16} /> إعدادات API
           </button>
         </div>
       </aside>
@@ -269,17 +325,17 @@ export default function Home() {
         </header>
 
         <div className="chat-messages">
-          {messages.map(msg => (
-            <div key={msg.id} className={`message ${msg.role}`}>
+          {messages.map((msg, index) => (
+            <div key={msg.id || index} className={`message ${msg.role}`}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-color)', fontWeight: 'bold' }}>
                 {msg.role === 'agent' ? <Bot size={18} /> : <User size={18} />}
                 <span>{msg.role === 'agent' ? 'المستشار' : 'أنت'}</span>
               </div>
               
-              {msg.fileName && (
+              {msg.file_name && (
                 <div style={{ backgroundColor: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '6px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
                   <FileText size={14} color="var(--accent-color)" /> 
-                  مرفق: {msg.fileName}
+                  مرفق: {msg.file_name}
                 </div>
               )}
               
@@ -349,12 +405,12 @@ export default function Home() {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isLoading}
+              disabled={isLoading || !activeCaseId}
             />
             
             <button 
               onClick={handleSendMessage} 
-              disabled={isLoading || (!inputMessage.trim() && !selectedFile)}
+              disabled={isLoading || (!inputMessage.trim() && !selectedFile) || !activeCaseId}
               title="إرسال"
             >
               <Send size={20} />
@@ -367,9 +423,9 @@ export default function Home() {
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>إعدادات النظام</h3>
+            <h3>إعدادات النظام (مفتاح الذكاء الاصطناعي)</h3>
             <p style={{ marginBottom: '15px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              أدخل مفتاح Google Gemini API لتفعيل قدرات الذكاء الاصطناعي للمستشار القانوني.
+              أدخل مفتاح Google Gemini API لتفعيل قدرات الذكاء الاصطناعي للمستشار القانوني الخاص بك.
             </p>
             <input 
               type="password" 
