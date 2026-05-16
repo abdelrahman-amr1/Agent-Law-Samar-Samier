@@ -45,8 +45,8 @@ export default function Login() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: 'var(--bg-color)' }}>
-      <div style={{ width: '400px', padding: '40px', backgroundColor: 'var(--panel-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+    <div style={{ display: 'flex', width: '100%', minHeight: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: 'var(--bg-color)', padding: '20px' }}>
+      <div style={{ width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: 'var(--panel-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <Bot size={48} color="var(--accent-color)" style={{ marginBottom: '10px' }} />
           <h2 style={{ color: 'var(--accent-color)' }}>نظام المستشار القانوني</h2>
