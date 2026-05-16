@@ -226,26 +226,28 @@ export default function AdminDashboard() {
           <p style={{ color: 'var(--text-secondary)', marginBottom: '15px', fontSize: '0.9rem' }}>
             أدخل مفتاح Google Gemini API هنا. سيتم استخدامه تلقائياً بواسطة جميع المحامين في المنصة ولن تظهر لهم نافذة طلب المفتاح بعد الآن.
           </p>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '15px', flexDirection: 'row-reverse' }}>
+            <button 
+              onClick={handleSaveApiKey}
+              disabled={savingKey}
+              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', padding: '12px 25px', borderRadius: '6px', cursor: savingKey ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+            >
+              <Save size={18} /> {savingKey ? 'جاري الحفظ...' : 'حفظ وتطبيق'}
+            </button>
             <input 
               type="password" 
               placeholder="Gemini API Key..."
               value={systemApiKey}
               onChange={(e) => setSystemApiKey(e.target.value)}
-              style={{ flex: 1, padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }}
+              style={{ flex: 1, padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr', textAlign: 'left' }}
             />
-            <button 
-              onClick={handleSaveApiKey}
-              disabled={savingKey}
-              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', padding: '0 20px', borderRadius: '6px', cursor: savingKey ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Save size={18} /> {savingKey ? 'جاري الحفظ...' : 'حفظ وتطبيق'}
-            </button>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '30px', alignItems: 'start', paddingBottom: '50px' }}>
+        {/* Right Column (in RTL) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
         {/* Create New User Panel */}
         <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', color: 'var(--accent-color)' }}>
@@ -294,6 +296,40 @@ export default function AdminDashboard() {
           </form>
         </div>
 
+        {/* Law Files Panel moved under Add Lawyer */}
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-color)' }}>
+              <FileText size={20} /> المراجع القانونية (قاعدة المعرفة)
+            </h2>
+            <label style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+              <UploadCloud size={16} /> رفع مرجع جديد
+              <input type="file" accept=".pdf,.txt" style={{ display: 'none' }} onChange={handleFileUpload} />
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {lawFiles.map(f => (
+              <div key={f.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px', wordBreak: 'break-word' }}>
+                  <FileText size={16} color={f.isLocal ? "#3498db" : "var(--accent-color)"} style={{ flexShrink: 0 }} /> 
+                  {f.name} {f.isLocal && <span style={{ fontSize: '0.7rem', backgroundColor: '#3498db', color: '#fff', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}>محلي</span>}
+                </span>
+                <button onClick={() => handleDeleteFile(f.name, f.isLocal)} style={{ background: 'transparent', border: 'none', color: f.isLocal ? 'gray' : '#e74c3c', cursor: f.isLocal ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            ))}
+            {lawFiles.length === 0 && (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد مراجع مرفوعة. يرجى رفع ملفات القانون المصري.</div>
+            )}
+          </div>
+        </div>
+        </div>
+
+        {/* Left Column (in RTL) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+
         {/* Lawyers Stats Panel */}
         <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', color: 'var(--accent-color)' }}>
@@ -315,40 +351,10 @@ export default function AdminDashboard() {
                 </tr>
               ))}
               {lawyers.length === 0 && (
-                <tr><td colSpan={2} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد محامين حالياً. قم بإنشائهم من منصة Supabase.</td></tr>
+                <tr><td colSpan={2} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد محامين حالياً. قم بإنشاء حساب جديد من اللوحة المجاورة.</td></tr>
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Law Files Panel */}
-        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-color)' }}>
-              <FileText size={20} /> المراجع القانونية (قاعدة المعرفة)
-            </h2>
-            <label style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.9rem', fontWeight: 'bold' }}>
-              <UploadCloud size={16} /> رفع مرجع جديد
-              <input type="file" accept=".pdf,.txt" style={{ display: 'none' }} onChange={handleFileUpload} />
-            </label>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {lawFiles.map(f => (
-              <div key={f.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <FileText size={16} color={f.isLocal ? "#3498db" : "var(--accent-color)"} /> 
-                  {f.name} {f.isLocal && <span style={{ fontSize: '0.7rem', backgroundColor: '#3498db', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>محلي</span>}
-                </span>
-                <button onClick={() => handleDeleteFile(f.name, f.isLocal)} style={{ background: 'transparent', border: 'none', color: f.isLocal ? 'gray' : '#e74c3c', cursor: f.isLocal ? 'not-allowed' : 'pointer' }}>
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
-            {lawFiles.length === 0 && (
-              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد مراجع مرفوعة. يرجى رفع ملفات القانون المصري.</div>
-            )}
-          </div>
         </div>
       </div>
     </div>
