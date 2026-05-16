@@ -56,7 +56,7 @@ export async function uploadToGemini(filePath: string, mimeType: string, apiKey:
 // getLawFileUris removed in favor of Supabase Storage logic in route.ts
 
 export async function generateChatResponse(apiKey: string, prompt: string, systemInstruction: string, fileUris: string[]) {
-  const parts = fileUris.map(uri => ({
+  const parts: any[] = fileUris.map(uri => ({
     file_data: {
       mime_type: uri.includes('.pdf') ? 'application/pdf' : 'application/pdf', // simplified, the API knows the mime type from the URI anyway
       file_uri: uri
@@ -79,8 +79,14 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
       temperature: 0.2,
       topK: 32,
       topP: 0.95,
-      maxOutputTokens: 4096,
-    }
+      maxOutputTokens: 8192,
+    },
+    safetySettings: [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+    ]
   };
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
