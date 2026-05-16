@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Users, FileText, Database, LogOut, UploadCloud, Trash2, Key, Save } from 'lucide-react';
+import { Users, FileText, Database, LogOut, UploadCloud, Trash2, Key, Save, UserPlus } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -11,6 +11,13 @@ export default function AdminDashboard() {
   const [lawFiles, setLawFiles] = useState<any[]>([]);
   const [systemApiKey, setSystemApiKey] = useState('');
   const [savingKey, setSavingKey] = useState(false);
+  
+  // New User Form State
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('123456');
+  const [creatingUser, setCreatingUser] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -113,6 +120,47 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingUser(true);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) throw new Error('غير مصرح لك');
+
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          full_name: newUserName,
+          email: newUserEmail,
+          password: newUserPassword
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'فشل إنشاء المستخدم');
+      }
+
+      alert('تم إضافة المحامي بنجاح!');
+      setNewUserName('');
+      setNewUserEmail('');
+      setNewUserPassword('123456');
+      fetchLawyersAndStats(); // Refresh the list
+    } catch (err: any) {
+      alert(`خطأ: ${err.message}`);
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
@@ -196,7 +244,55 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
+        {/* Create New User Panel */}
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', color: 'var(--accent-color)' }}>
+            <UserPlus size={20} /> إضافة محامٍ جديد
+          </h2>
+          <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>الاسم بالكامل</label>
+              <input 
+                type="text" 
+                required
+                placeholder="أحمد محمد"
+                value={newUserName}
+                onChange={e => setNewUserName(e.target.value)}
+                style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>البريد الإلكتروني</label>
+              <input 
+                type="email" 
+                required
+                placeholder="lawyer@example.com"
+                value={newUserEmail}
+                onChange={e => setNewUserEmail(e.target.value)}
+                style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>كلمة المرور الافتراضية</label>
+              <input 
+                type="text" 
+                required
+                value={newUserPassword}
+                onChange={e => setNewUserPassword(e.target.value)}
+                style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }}
+              />
+            </div>
+            <button 
+              type="submit" 
+              disabled={creatingUser}
+              style={{ padding: '12px', marginTop: '10px', backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: creatingUser ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+            >
+              {creatingUser ? 'جاري الإضافة...' : 'إنشاء الحساب'}
+            </button>
+          </form>
+        </div>
+
         {/* Lawyers Stats Panel */}
         <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', color: 'var(--accent-color)' }}>
