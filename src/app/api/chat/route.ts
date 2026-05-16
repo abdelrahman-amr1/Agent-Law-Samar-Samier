@@ -24,6 +24,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    // Helper to check cache and upload
+    const getOrUploadFileUri = async (fileKey: string, filePath: string, mimeType: string) => {
+      // 1. Check Supabase Cache
+      const { data: cacheData } = await supabase
+        .from('gemini_cache')
+        .select('*')
+        .eq('file_name', fileKey)
+        .single();
+
+      if (cacheData) {
+        const lastUpdated = new Date(cacheData.updated_at).getTime();
+        const now = Date.now();
+        const hoursPassed = (now - lastUpdated) / (1000 * 60 * 60);
+
+        // Gemini File URIs expire after 48 hours. Let's renew if older than 46 hours.
+        if (hoursPassed < 46) {
+          console.log(`Using cached URI for ${fileKey}...`);
+          return cacheData.file_uri;
+        }
+      }
+
+      // 2. Not found or expired, so upload it
+      console.log(`Uploading to Gemini: ${fileKey}...`);
+      const uri = await uploadToGemini(filePath, mimeType, apiKey);
+
+      // 3. Save to Supabase Cache
+      await supabase.from('gemini_cache').upsert({
+        file_name: fileKey,
+        file_uri: uri,
+        updated_at: new Date().toISOString()
+      });
+
+      return uri;
+    };
+
     const lawFileUris: string[] = [];
 
     // --- 1. Fetch Local Law Files from `file/` directory ---
@@ -32,18 +67,12 @@ export async function POST(req: Request) {
     if (fs.existsSync(localFileDir)) {
       const localFiles = fs.readdirSync(localFileDir).filter(f => f.endsWith('.pdf') || f.endsWith('.txt'));
       for (const file of localFiles) {
-        if (uploadedLawFilesCache[file]) {
-          lawFileUris.push(uploadedLawFilesCache[file]);
-          continue;
-        }
         try {
           const filePath = path.join(localFileDir, file);
-          console.log(`Uploading local law file to Gemini: ${file}...`);
-          const uri = await uploadToGemini(filePath, file.endsWith('.pdf') ? 'application/pdf' : 'text/plain', apiKey);
-          uploadedLawFilesCache[file] = uri;
+          const uri = await getOrUploadFileUri(`local_${file}`, filePath, file.endsWith('.pdf') ? 'application/pdf' : 'text/plain');
           lawFileUris.push(uri);
         } catch (e) {
-          console.error(`Error uploading local ${file}:`, e);
+          console.error(`Error processing local ${file}:`, e);
         }
       }
     }
@@ -56,11 +85,24 @@ export async function POST(req: Request) {
     if (storageFiles && !bucketError) {
       const validFiles = storageFiles.filter(f => f.name !== '.emptyFolderPlaceholder');
       for (const sf of validFiles) {
-        if (uploadedLawFilesCache[sf.name]) {
-          lawFileUris.push(uploadedLawFilesCache[sf.name]);
-          continue;
+        
+        // Let's try to get URI from cache first to avoid downloading from storage if not needed
+        const { data: preCacheData } = await supabase
+          .from('gemini_cache')
+          .select('*')
+          .eq('file_name', `cloud_${sf.name}`)
+          .single();
+          
+        if (preCacheData) {
+           const hoursPassed = (Date.now() - new Date(preCacheData.updated_at).getTime()) / (1000 * 60 * 60);
+           if (hoursPassed < 46) {
+             console.log(`Using cached URI for cloud_${sf.name}...`);
+             lawFileUris.push(preCacheData.file_uri);
+             continue; // skip download entirely!
+           }
         }
 
+        // Cache expired or not found, we must download and upload
         const { data: fileData, error: downloadError } = await supabase.storage.from('law_files').download(sf.name);
         if (fileData && !downloadError) {
           const buffer = Buffer.from(await fileData.arrayBuffer());
@@ -68,9 +110,7 @@ export async function POST(req: Request) {
           fs.writeFileSync(tempPath, buffer);
 
           try {
-            console.log(`Uploading cloud law file to Gemini: ${sf.name}...`);
-            const uri = await uploadToGemini(tempPath, sf.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain', apiKey);
-            uploadedLawFilesCache[sf.name] = uri;
+            const uri = await getOrUploadFileUri(`cloud_${sf.name}`, tempPath, sf.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain');
             lawFileUris.push(uri);
           } catch (e) {
             console.error(`Error uploading ${sf.name} to Gemini:`, e);

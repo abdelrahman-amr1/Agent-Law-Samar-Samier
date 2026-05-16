@@ -113,3 +113,19 @@ CREATE POLICY "Authenticated users can read law files"
     bucket_id = 'law_files' AND 
     auth.role() = 'authenticated'
   );
+
+-- 5. Gemini Cache Table
+CREATE TABLE public.gemini_cache (
+  file_name TEXT PRIMARY KEY,
+  file_uri TEXT NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Note: Since the API routes run on Vercel without an active user session in the server (unless we pass the token), 
+-- it's easiest to allow anon read/write to this cache table if using Anon Key in API routes, 
+-- or we can use Service Role key. For simplicity with Anon Key:
+ALTER TABLE public.gemini_cache ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anon read gemini_cache" ON public.gemini_cache FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert gemini_cache" ON public.gemini_cache FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon update gemini_cache" ON public.gemini_cache FOR UPDATE USING (true);
