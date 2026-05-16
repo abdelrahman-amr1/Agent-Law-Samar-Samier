@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Users, FileText, Database, LogOut, UploadCloud, Trash2 } from 'lucide-react';
+import { Users, FileText, Database, LogOut, UploadCloud, Trash2, Key, Save } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [lawyers, setLawyers] = useState<any[]>([]);
   const [lawFiles, setLawFiles] = useState<any[]>([]);
+  const [systemApiKey, setSystemApiKey] = useState('');
+  const [savingKey, setSavingKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -16,6 +18,7 @@ export default function AdminDashboard() {
     checkAdmin();
     fetchLawyersAndStats();
     fetchLawFiles();
+    fetchSystemApiKey();
   }, []);
 
   const checkAdmin = async () => {
@@ -84,6 +87,32 @@ export default function AdminDashboard() {
     setLawFiles(allFiles);
   };
 
+  const fetchSystemApiKey = async () => {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'gemini_api_key')
+      .single();
+    
+    if (data) {
+      setSystemApiKey(data.value);
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    setSavingKey(true);
+    const { error } = await supabase
+      .from('settings')
+      .upsert({ key: 'gemini_api_key', value: systemApiKey.trim(), updated_at: new Date().toISOString() });
+    
+    setSavingKey(false);
+    if (error) {
+      alert(`خطأ في حفظ المفتاح: ${error.message}`);
+    } else {
+      alert('تم حفظ المفتاح بنجاح! سيتم تطبيقه على جميع المحامين تلقائياً.');
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
@@ -139,6 +168,33 @@ export default function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
+        {/* System Settings Panel */}
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', color: 'var(--accent-color)' }}>
+            <Key size={20} /> إعدادات النظام (مفتاح الذكاء الاصطناعي المركزي)
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '15px', fontSize: '0.9rem' }}>
+            أدخل مفتاح Google Gemini API هنا. سيتم استخدامه تلقائياً بواسطة جميع المحامين في المنصة ولن تظهر لهم نافذة طلب المفتاح بعد الآن.
+          </p>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input 
+              type="password" 
+              placeholder="Gemini API Key..."
+              value={systemApiKey}
+              onChange={(e) => setSystemApiKey(e.target.value)}
+              style={{ flex: 1, padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }}
+            />
+            <button 
+              onClick={handleSaveApiKey}
+              disabled={savingKey}
+              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', padding: '0 20px', borderRadius: '6px', cursor: savingKey ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Save size={18} /> {savingKey ? 'جاري الحفظ...' : 'حفظ وتطبيق'}
+            </button>
+          </div>
+        </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
         {/* Lawyers Stats Panel */}

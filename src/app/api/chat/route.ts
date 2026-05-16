@@ -11,9 +11,16 @@ const uploadedLawFilesCache: Record<string, string> = {};
 
 export async function POST(req: Request) {
   try {
-    const apiKey = req.headers.get('x-api-key');
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API Key is required' }, { status: 401 });
+    const { data: apiKeyData, error: apiKeyError } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'gemini_api_key')
+      .single();
+
+    const apiKey = apiKeyData?.value;
+
+    if (!apiKey || apiKey.trim() === '') {
+      return NextResponse.json({ error: 'لم يقم الإدارة بتعيين مفتاح الذكاء الاصطناعي (Gemini API Key) بعد. يرجى مراجعة لوحة الإدارة.' }, { status: 401 });
     }
 
     const formData = await req.formData();

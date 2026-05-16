@@ -33,8 +33,6 @@ const THINKING_STEPS = [
 ];
 
 export default function Home() {
-  const [apiKey, setApiKey] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [lawFiles, setLawFiles] = useState<any[]>([]);
   
   // Supabase Auth & Cases State
@@ -53,9 +51,6 @@ export default function Home() {
 
   useEffect(() => {
     checkAuthAndLoad();
-    const savedKey = localStorage.getItem('gemini_api_key');
-    if (savedKey) setApiKey(savedKey);
-    else setIsModalOpen(true);
   }, []);
 
   useEffect(() => {
@@ -146,12 +141,7 @@ export default function Home() {
     }
   };
 
-  const saveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('gemini_api_key', apiKey.trim());
-      setIsModalOpen(false);
-    }
-  };
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -160,11 +150,6 @@ export default function Home() {
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() && !selectedFile) return;
-    if (!apiKey) {
-      alert("الرجاء إدخال مفتاح API الخاص بـ Gemini أولاً.");
-      setIsModalOpen(true);
-      return;
-    }
     if (!activeCaseId) {
       await createNewCase();
       // Need to wait for activeCaseId to update, so for now we'll just alert
@@ -206,7 +191,6 @@ export default function Home() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'x-api-key': apiKey },
         body: formData
       });
 
@@ -307,14 +291,7 @@ export default function Home() {
           )}
         </div>
         
-        <div style={{ marginTop: 'auto' }}>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
-          >
-            <Settings size={16} /> إعدادات API
-          </button>
-        </div>
+
       </aside>
 
       {/* Main Chat Area */}
@@ -419,24 +396,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Settings Modal */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>إعدادات النظام (مفتاح الذكاء الاصطناعي)</h3>
-            <p style={{ marginBottom: '15px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              أدخل مفتاح Google Gemini API لتفعيل قدرات الذكاء الاصطناعي للمستشار القانوني الخاص بك.
-            </p>
-            <input 
-              type="password" 
-              placeholder="Gemini API Key" 
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-            <button className="save-btn" onClick={saveApiKey}>حفظ وبدء الاستخدام</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

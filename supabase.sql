@@ -129,3 +129,27 @@ ALTER TABLE public.gemini_cache ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow anon read gemini_cache" ON public.gemini_cache FOR SELECT USING (true);
 CREATE POLICY "Allow anon insert gemini_cache" ON public.gemini_cache FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow anon update gemini_cache" ON public.gemini_cache FOR UPDATE USING (true);
+
+-- 6. Settings Table (For Global Admin Configurations)
+CREATE TABLE public.settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Insert initial empty API key
+INSERT INTO public.settings (key, value) VALUES ('gemini_api_key', '') ON CONFLICT (key) DO NOTHING;
+
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+-- Admins can view and update settings
+CREATE POLICY "Admins can view settings"
+  ON public.settings FOR SELECT
+  USING ( EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') );
+
+CREATE POLICY "Admins can update settings"
+  ON public.settings FOR UPDATE
+  USING ( EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') );
+
+-- Server API route needs to read it anonymously (using Anon Key)
+CREATE POLICY "Allow anon read settings" ON public.settings FOR SELECT USING (true);
