@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Paperclip, Send, Settings, BookOpen, FileText, Bot, User, Trash2, Plus, MessageSquare, CheckCircle2, LogOut } from 'lucide-react';
+import { Paperclip, Send, Settings, BookOpen, FileText, Bot, User, Trash2, Plus, MessageSquare, CheckCircle2, LogOut, Menu } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -45,6 +45,7 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const thinkingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
@@ -247,8 +248,11 @@ export default function Home() {
 
   return (
     <div className="app-container">
+      {/* Sidebar Overlay for Mobile */}
+      <div className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`} onClick={() => setIsSidebarOpen(false)}></div>
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ margin: 0 }}><Bot size={20} /> مساحة المحامي</h2>
           <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }} title="تسجيل الخروج"><LogOut size={18} /></button>
@@ -264,7 +268,7 @@ export default function Home() {
             <div 
               key={c.id} 
               className={`session-item ${c.id === activeCaseId ? 'active' : ''}`}
-              onClick={() => setActiveCaseId(c.id)}
+              onClick={() => { setActiveCaseId(c.id); setIsSidebarOpen(false); }}
             >
               <div className="session-title">
                 <MessageSquare size={14} color={c.id === activeCaseId ? 'var(--accent-color)' : 'var(--text-secondary)'} />
@@ -297,7 +301,12 @@ export default function Home() {
       {/* Main Chat Area */}
       <main className="main-chat">
         <header className="chat-header">
-          <h1>المستشار القانوني الذكي</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+              <Menu size={24} />
+            </button>
+            <h1>المستشار القانوني الذكي</h1>
+          </div>
           <Bot size={32} color="var(--accent-color)" />
         </header>
 
