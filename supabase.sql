@@ -151,5 +151,9 @@ CREATE POLICY "Admins can update settings"
   ON public.settings FOR UPDATE
   USING ( EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') );
 
+CREATE POLICY "Admins can insert settings"
+  ON public.settings FOR INSERT
+  WITH CHECK ( EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') );
+
 -- Server API route needs to read it anonymously (using Anon Key)
 CREATE POLICY "Allow anon read settings" ON public.settings FOR SELECT USING (true);

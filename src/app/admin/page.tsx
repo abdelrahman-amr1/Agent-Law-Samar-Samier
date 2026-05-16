@@ -245,9 +245,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '30px', alignItems: 'start', paddingBottom: '50px' }}>
-        {/* Right Column (in RTL) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '25px', alignItems: 'start', paddingBottom: '50px' }}>
         {/* Create New User Panel */}
         <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', color: 'var(--accent-color)' }}>
@@ -325,10 +323,6 @@ export default function AdminDashboard() {
             )}
           </div>
         </div>
-        </div>
-
-        {/* Left Column (in RTL) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
 
         {/* Lawyers Stats Panel */}
         <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
