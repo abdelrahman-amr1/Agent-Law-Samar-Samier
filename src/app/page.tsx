@@ -304,7 +304,7 @@ export default function Home() {
         </head>
         <body>
           <div class="memo-container">
-            \${printContent}
+            ${printContent}
           </div>
           <script>
             window.onload = () => {
