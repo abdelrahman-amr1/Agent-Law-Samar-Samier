@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Paperclip, Send, Settings, BookOpen, FileText, Bot, User, Trash2, Plus, MessageSquare, CheckCircle2, LogOut, Menu } from 'lucide-react';
+import { Paperclip, Send, Settings, BookOpen, FileText, Bot, User, Trash2, Plus, MessageSquare, CheckCircle2, LogOut, Menu, Download } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -256,9 +256,65 @@ export default function Home() {
   };
 
   const formatMessage = (text: string) => {
-    let formatted = text.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
-    formatted = formatted.replace(/\\n/g, '<br />');
+    let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formatted = formatted.replace(/\n/g, '<br />');
     return <div dangerouslySetInnerHTML={{ __html: formatted }} />;
+  };
+
+  const handleDownloadMemo = (content: string) => {
+    // Format content for print
+    let printContent = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    printContent = printContent.replace(/\n/g, '<br />');
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("الرجاء السماح بالنوافذ المنبثقة (Pop-ups) لتحميل المذكرة.");
+      return;
+    }
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>مذكرة دفاع</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+            @page {
+              size: A4;
+              margin: 2cm;
+            }
+            body {
+              font-family: 'Amiri', serif;
+              background: white;
+              color: black;
+              line-height: 1.8;
+              font-size: 14pt;
+              margin: 0;
+              padding: 0;
+            }
+            .memo-container {
+              border: 3px double #000;
+              padding: 30px;
+              min-height: 100vh;
+              box-sizing: border-box;
+            }
+            strong {
+              font-size: 1.1em;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="memo-container">
+            \${printContent}
+          </div>
+          <script>
+            window.onload = () => {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -343,6 +399,30 @@ export default function Home() {
               <div style={{ lineHeight: '1.7' }}>
                 {formatMessage(msg.content)}
               </div>
+              
+              {msg.role === 'agent' && msg.id !== 'welcome' && (
+                <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button 
+                    onClick={() => handleDownloadMemo(msg.content)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: 'var(--accent-color)',
+                      color: 'var(--bg-color)',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '0.9rem'
+                    }}
+                    title="تحميل وطباعة مذكرة الدفاع بالتنسيق الرسمي"
+                  >
+                    <Download size={16} /> طباعة المذكرة (PDF)
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
