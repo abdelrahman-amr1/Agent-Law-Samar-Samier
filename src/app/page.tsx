@@ -41,6 +41,8 @@ export default function Home() {
   const [activeCaseId, setActiveCaseId] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME_MSG]);
   
+  const isChatLocked = messages.some(msg => msg.role === 'agent' && msg.id !== 'welcome');
+  
   const [inputMessage, setInputMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -451,52 +453,60 @@ export default function Home() {
         </div>
 
         <div className="input-area">
-          {selectedFile && (
-            <div className="upload-case-area" style={{ marginBottom: '10px' }}>
-              <div style={{ backgroundColor: 'var(--user-msg-bg)', padding: '5px 10px', borderRadius: '4px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileText size={14} color="var(--accent-color)" />
-                {selectedFile.name}
-                <Trash2 
-                  size={14} 
-                  color="#e74c3c" 
-                  style={{ cursor: 'pointer', marginLeft: '10px' }} 
-                  onClick={() => setSelectedFile(null)} 
-                />
-              </div>
+          {isChatLocked ? (
+            <div style={{ textAlign: 'center', padding: '20px', backgroundColor: 'var(--panel-bg)', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+              تم إغلاق هذه القضية وإصدار المذكرة. يرجى <button onClick={createNewCase} style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline', padding: 0 }}>فتح قضية جديدة</button> لطلب جديد.
             </div>
-          )}
+          ) : (
+            <>
+              {selectedFile && (
+                <div className="upload-case-area" style={{ marginBottom: '10px' }}>
+                  <div style={{ backgroundColor: 'var(--user-msg-bg)', padding: '5px 10px', borderRadius: '4px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FileText size={14} color="var(--accent-color)" />
+                    {selectedFile.name}
+                    <Trash2 
+                      size={14} 
+                      color="#e74c3c" 
+                      style={{ cursor: 'pointer', marginLeft: '10px' }} 
+                      onClick={() => setSelectedFile(null)} 
+                    />
+                  </div>
+                </div>
+              )}
 
-          <div className="input-box">
-            <label className="file-input-label" title="إرفاق ملف الدعوى">
-              <input 
-                type="file" 
-                style={{ display: 'none' }} 
-                accept=".pdf,.txt,.docx" 
-                onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) {
-                    setSelectedFile(e.target.files[0]);
-                  }
-                }}
-              />
-              <Paperclip size={20} />
-            </label>
-            
-            <textarea 
-              placeholder='اكتب هنا (مثال: "حلل هذه الدعوى بصفتك محامي المدعى عليه واستخرج لي أقوى 3 دفوع قانونية...")'
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isLoading || !activeCaseId}
-            />
-            
-            <button 
-              onClick={handleSendMessage} 
-              disabled={isLoading || (!inputMessage.trim() && !selectedFile) || !activeCaseId}
-              title="إرسال"
-            >
-              <Send size={20} />
-            </button>
-          </div>
+              <div className="input-box">
+                <label className="file-input-label" title="إرفاق ملف الدعوى">
+                  <input 
+                    type="file" 
+                    style={{ display: 'none' }} 
+                    accept=".pdf,.txt,.docx" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setSelectedFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <Paperclip size={20} />
+                </label>
+                
+                <textarea 
+                  placeholder='اكتب هنا (مثال: "حلل هذه الدعوى بصفتك محامي المدعى عليه واستخرج لي أقوى 3 دفوع قانونية...")'
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isLoading || !activeCaseId}
+                />
+                
+                <button 
+                  onClick={handleSendMessage} 
+                  disabled={isLoading || (!inputMessage.trim() && !selectedFile) || !activeCaseId}
+                  title="إرسال"
+                >
+                  <Send size={20} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </main>
 
