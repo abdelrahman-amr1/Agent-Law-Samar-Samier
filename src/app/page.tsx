@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Paperclip, Send, Settings, BookOpen, FileText, Bot, User, Trash2, Plus, MessageSquare, CheckCircle2, LogOut, Menu, Download } from 'lucide-react';
+import { Paperclip, Send, Settings, BookOpen, FileText, Bot, User, Trash2, Plus, MessageSquare, CheckCircle2, LogOut, Menu, Download, Image as ImageIcon } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -462,7 +462,7 @@ export default function Home() {
               {selectedFile && (
                 <div className="upload-case-area" style={{ marginBottom: '10px' }}>
                   <div style={{ backgroundColor: 'var(--user-msg-bg)', padding: '5px 10px', borderRadius: '4px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FileText size={14} color="var(--accent-color)" />
+                    {selectedFile.type.startsWith('image/') ? <ImageIcon size={14} color="var(--accent-color)" /> : <FileText size={14} color="var(--accent-color)" />}
                     {selectedFile.name}
                     <Trash2 
                       size={14} 
@@ -479,7 +479,7 @@ export default function Home() {
                   <input 
                     type="file" 
                     style={{ display: 'none' }} 
-                    accept=".pdf,.txt,.docx" 
+                    accept=".pdf,.txt,.docx,.png,.jpg,.jpeg,.webp" 
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
                         setSelectedFile(e.target.files[0]);
