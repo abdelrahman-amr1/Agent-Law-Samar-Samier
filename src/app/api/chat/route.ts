@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       return uri;
     };
 
-    const lawFileUris: string[] = [];
+    const lawFilesData: { uri: string, mimeType: string }[] = [];
 
     // --- 1. Fetch Local Law Files from `file/` directory ---
     console.log("Fetching Local Law Files...");
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
         try {
           const filePath = path.join(localFileDir, file);
           const uri = await getOrUploadFileUri(`local_${file}`, filePath, file.endsWith('.pdf') ? 'application/pdf' : 'text/plain');
-          lawFileUris.push(uri);
+          lawFilesData.push({ uri, mimeType: file.endsWith('.pdf') ? 'application/pdf' : 'text/plain' });
         } catch (e) {
           console.error(`Error processing local ${file}:`, e);
         }
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
            const hoursPassed = (Date.now() - new Date(preCacheData.updated_at).getTime()) / (1000 * 60 * 60);
            if (hoursPassed < 46) {
              console.log(`Using cached URI for cloud_${sf.name}...`);
-             lawFileUris.push(preCacheData.file_uri);
+             lawFilesData.push({ uri: preCacheData.file_uri, mimeType: sf.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain' });
              continue; // skip download entirely!
            }
         }
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
 
           try {
             const uri = await getOrUploadFileUri(`cloud_${sf.name}`, tempPath, sf.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain');
-            lawFileUris.push(uri);
+            lawFilesData.push({ uri, mimeType: sf.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain' });
           } catch (e) {
             console.error(`Error uploading ${sf.name} to Gemini:`, e);
           } finally {
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const allFileUris = [...lawFileUris];
+    const allFiles = [...lawFilesData];
 
     // --- 3. Upload User Case File ---
     let tmpFilePath = '';
@@ -140,13 +140,14 @@ export async function POST(req: Request) {
       tmpFilePath = path.join(os.tmpdir(), `case_${Date.now()}_${file.name}`);
       fs.writeFileSync(tmpFilePath, buffer);
 
-      const caseFileUri = await uploadToGemini(tmpFilePath, file.type || 'application/pdf', apiKey);
-      allFileUris.push(caseFileUri);
+      const mimeType = file.type || 'application/pdf';
+      const caseFileUri = await uploadToGemini(tmpFilePath, mimeType, apiKey);
+      allFiles.push({ uri: caseFileUri, mimeType });
     }
 
     // --- 4. Generate response from Gemini ---
     console.log("Generating Response from Gemini...");
-    const responseText = await generateChatResponse(apiKey, message, SYSTEM_PROMPT, allFileUris);
+    const responseText = await generateChatResponse(apiKey, message, SYSTEM_PROMPT, allFiles);
 
     // Clean up temp file
     if (tmpFilePath && fs.existsSync(tmpFilePath)) {

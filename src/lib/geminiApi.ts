@@ -55,13 +55,15 @@ export async function uploadToGemini(filePath: string, mimeType: string, apiKey:
 
 // getLawFileUris removed in favor of Supabase Storage logic in route.ts
 
-export async function generateChatResponse(apiKey: string, prompt: string, systemInstruction: string, fileUris: string[]) {
-  const parts: any[] = fileUris.map(uri => ({
-    file_data: {
-      mime_type: uri.includes('.pdf') ? 'application/pdf' : 'application/pdf', // simplified, the API knows the mime type from the URI anyway
-      file_uri: uri
-    }
-  }));
+export async function generateChatResponse(apiKey: string, prompt: string, systemInstruction: string, files: { uri: string, mimeType: string }[]) {
+  const parts: any[] = files
+    .filter(file => file && file.uri && file.mimeType)
+    .map(file => ({
+      file_data: {
+        mime_type: file.mimeType,
+        file_uri: file.uri
+      }
+    }));
   
   parts.push({ text: prompt });
 
@@ -89,7 +91,7 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
     ]
   };
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -100,6 +102,7 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
   if (!response.ok) {
     const err = await response.text();
     console.error('Gemini API Error:', err);
+    console.error('Payload sent:', JSON.stringify(body, null, 2));
     throw new Error(`مشكلة في الاتصال بـ Gemini: ${err}`);
   }
 

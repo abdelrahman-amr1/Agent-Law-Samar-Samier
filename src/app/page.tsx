@@ -479,7 +479,7 @@ export default function Home() {
                   <input 
                     type="file" 
                     style={{ display: 'none' }} 
-                    accept=".pdf,.txt,.docx,.png,.jpg,.jpeg,.webp" 
+                    accept=".pdf,.txt,.png,.jpg,.jpeg,.webp" 
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
                         setSelectedFile(e.target.files[0]);
