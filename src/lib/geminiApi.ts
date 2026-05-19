@@ -55,7 +55,7 @@ export async function uploadToGemini(filePath: string, mimeType: string, apiKey:
 
 // getLawFileUris removed in favor of Supabase Storage logic in route.ts
 
-export async function generateChatResponse(apiKey: string, prompt: string, systemInstruction: string, files: { uri: string, mimeType: string }[]) {
+export async function generateChatResponse(apiKey: string, prompt: string, systemInstruction: string, files: { uri: string, mimeType: string }[], history: any[] = []) {
   const parts: any[] = files
     .filter(file => file && file.uri && file.mimeType)
     .map(file => ({
@@ -67,16 +67,19 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
   
   parts.push({ text: prompt });
 
+  const contents = [
+    ...history,
+    {
+      role: 'user',
+      parts: parts
+    }
+  ];
+
   const body = {
     system_instruction: {
       parts: [{ text: systemInstruction }]
     },
-    contents: [
-      {
-        role: 'user',
-        parts: parts
-      }
-    ],
+    contents: contents,
     generationConfig: {
       temperature: 0.2,
       topK: 32,

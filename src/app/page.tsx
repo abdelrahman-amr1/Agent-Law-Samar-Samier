@@ -206,6 +206,15 @@ export default function Home() {
     formData.append('message', userMsgContent || 'الرجاء تحليل هذا الملف');
     if (selectedFile) formData.append('file', selectedFile);
 
+    // Add chat history
+    const history = messages
+      .filter(m => m.id !== 'welcome') // Ignore welcome msg
+      .map(m => ({
+        role: m.role === 'agent' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      }));
+    formData.append('history', JSON.stringify(history));
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',

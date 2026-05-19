@@ -26,6 +26,15 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const message = formData.get('message') as string;
+    const historyString = formData.get('history') as string | null;
+    let history: any[] = [];
+    if (historyString) {
+      try {
+        history = JSON.parse(historyString);
+      } catch (e) {
+        console.error("Failed to parse history", e);
+      }
+    }
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -147,7 +156,7 @@ export async function POST(req: Request) {
 
     // --- 4. Generate response from Gemini ---
     console.log("Generating Response from Gemini...");
-    const responseText = await generateChatResponse(apiKey, message, SYSTEM_PROMPT, allFiles);
+    const responseText = await generateChatResponse(apiKey, message, SYSTEM_PROMPT, allFiles, history);
 
     // Clean up temp file
     if (tmpFilePath && fs.existsSync(tmpFilePath)) {
