@@ -41,7 +41,7 @@ export default function Home() {
   const [activeCaseId, setActiveCaseId] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME_MSG]);
   
-  const isChatLocked = messages.some(msg => msg.role === 'agent' && msg.id !== 'welcome');
+  const isChatLocked = false; // Always keep the chat open
   
   const [inputMessage, setInputMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
