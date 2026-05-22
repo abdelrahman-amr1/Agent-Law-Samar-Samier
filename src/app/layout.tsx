@@ -4,6 +4,9 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'المستشار القانوني الذكي',
   description: 'مساعد ذكي محترف لتحليل الدعاوي القضائية',
+  icons: {
+    icon: '/icon.svg',
+  },
 }
 
 export default function RootLayout({
