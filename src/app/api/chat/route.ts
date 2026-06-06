@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     const file = formData.get('file') as File | null;
     const message = formData.get('message') as string;
     const historyString = formData.get('history') as string | null;
+    const lawyerId = formData.get('lawyer_id') as string | null;
     let history: any[] = [];
     if (historyString) {
       try {
@@ -38,6 +39,22 @@ export async function POST(req: Request) {
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
+
+    if (lawyerId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('query_limit, queries_used, role')
+        .eq('id', lawyerId)
+        .single();
+
+      if (profile && profile.role !== 'admin') {
+        if ((profile.queries_used || 0) >= (profile.query_limit || 0)) {
+          return NextResponse.json({ 
+            error: 'لقد استهلكت جميع الأسئلة المتاحة في باقتك الحالية. يرجى التواصل مع الدكتورة سمر سمير لإعادة الشحن المباشر.' 
+          }, { status: 403 });
+        }
+      }
     }
 
     // Helper to check cache and upload
@@ -161,6 +178,26 @@ export async function POST(req: Request) {
     // Clean up temp file
     if (tmpFilePath && fs.existsSync(tmpFilePath)) {
       fs.unlinkSync(tmpFilePath);
+    }
+
+    // Increment queries_used in user profile
+    if (lawyerId) {
+      try {
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('queries_used')
+          .eq('id', lawyerId)
+          .single();
+        
+        if (currentProfile) {
+          await supabase
+            .from('profiles')
+            .update({ queries_used: (currentProfile.queries_used || 0) + 1 })
+            .eq('id', lawyerId);
+        }
+      } catch (err) {
+        console.error("Failed to increment queries_used:", err);
+      }
     }
 
     return NextResponse.json({

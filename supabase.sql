@@ -6,6 +6,8 @@ CREATE TABLE public.profiles (
   full_name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('admin', 'lawyer')),
   is_active BOOLEAN DEFAULT true NOT NULL,
+  query_limit INTEGER DEFAULT 150 NOT NULL,
+  queries_used INTEGER DEFAULT 0 NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

@@ -205,6 +205,7 @@ export default function Home() {
     const formData = new FormData();
     formData.append('message', userMsgContent || 'الرجاء تحليل هذا الملف');
     if (selectedFile) formData.append('file', selectedFile);
+    if (user?.id) formData.append('lawyer_id', user.id);
 
     // Add chat history
     const history = messages

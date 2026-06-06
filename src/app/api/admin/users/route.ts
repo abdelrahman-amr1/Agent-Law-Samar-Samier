@@ -97,11 +97,16 @@ export async function PUT(req: Request) {
     const { data: profile } = await normalSupabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const { targetUserId, full_name, password } = await req.json();
+    const { targetUserId, full_name, password, query_limit, queries_used } = await req.json();
     if (!targetUserId) return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
 
-    if (full_name) {
-      const { error } = await supabaseAdmin.from('profiles').update({ full_name }).eq('id', targetUserId);
+    const updateData: any = {};
+    if (full_name) updateData.full_name = full_name;
+    if (query_limit !== undefined) updateData.query_limit = query_limit;
+    if (queries_used !== undefined) updateData.queries_used = queries_used;
+
+    if (Object.keys(updateData).length > 0) {
+      const { error } = await supabaseAdmin.from('profiles').update(updateData).eq('id', targetUserId);
       if (error) throw error;
     }
 

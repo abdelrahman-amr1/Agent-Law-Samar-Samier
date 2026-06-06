@@ -26,6 +26,8 @@ export default function AdminDashboard() {
   const [editTargetId, setEditTargetId] = useState('');
   const [editFullName, setEditFullName] = useState('');
   const [editPassword, setEditPassword] = useState('');
+  const [editQueryLimit, setEditQueryLimit] = useState(150);
+  const [editQueriesUsed, setEditQueriesUsed] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -251,7 +253,13 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ targetUserId: editTargetId, full_name: editFullName, password: editPassword || undefined })
+        body: JSON.stringify({ 
+          targetUserId: editTargetId, 
+          full_name: editFullName, 
+          password: editPassword || undefined,
+          query_limit: editQueryLimit,
+          queries_used: editQueriesUsed
+        })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
@@ -579,7 +587,14 @@ export default function AdminDashboard() {
                   </td>
                   <td style={{ padding: '15px 10px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                      <button onClick={() => { setEditTargetId(l.id); setEditFullName(l.full_name); setEditPassword(''); setEditModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#3498db', cursor: 'pointer', padding: '5px' }} title="تعديل البيانات"><Edit size={18} /></button>
+                      <button onClick={() => { 
+                        setEditTargetId(l.id); 
+                        setEditFullName(l.full_name); 
+                        setEditPassword(''); 
+                        setEditQueryLimit(l.query_limit || 150);
+                        setEditQueriesUsed(l.queries_used || 0);
+                        setEditModalOpen(true); 
+                      }} style={{ background: 'none', border: 'none', color: '#3498db', cursor: 'pointer', padding: '5px' }} title="تعديل البيانات"><Edit size={18} /></button>
                       <button onClick={() => handleDeleteUser(l.id)} disabled={isDeleting} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: isDeleting ? 'not-allowed' : 'pointer', padding: '5px' }} title="حذف الحساب نهائياً"><Trash2 size={18} /></button>
                     </div>
                   </td>
@@ -604,13 +619,21 @@ export default function AdminDashboard() {
             <form onSubmit={handleEditUser} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>الاسم بالكامل</label>
-                <input type="text" required value={editFullName} onChange={e => setEditFullName(e.target.value)} />
+                <input type="text" required value={editFullName} onChange={e => setEditFullName(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>حد الأسئلة المسموح بها</label>
+                <input type="number" required value={editQueryLimit} onChange={e => setEditQueryLimit(parseInt(e.target.value) || 0)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>الأسئلة المستخدمة حالياً</label>
+                <input type="number" required value={editQueriesUsed} onChange={e => setEditQueriesUsed(parseInt(e.target.value) || 0)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>كلمة المرور الجديدة (اختياري)</label>
-                <input type="password" placeholder="اتركها فارغة لعدم التغيير" value={editPassword} onChange={e => setEditPassword(e.target.value)} />
+                <input type="password" placeholder="اتركها فارغة لعدم التغيير" value={editPassword} onChange={e => setEditPassword(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }} />
               </div>
-              <button type="submit" disabled={isEditing} className="save-btn" style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isEditing ? 'not-allowed' : 'pointer' }}>
+              <button type="submit" disabled={isEditing} className="save-btn" style={{ padding: '12px', marginTop: '10px', backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isEditing ? 'not-allowed' : 'pointer' }}>
                 {isEditing ? 'جاري الحفظ...' : 'حفظ التعديلات'}
               </button>
             </form>
