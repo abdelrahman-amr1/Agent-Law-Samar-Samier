@@ -37,6 +37,7 @@ export default function Home() {
   
   // Supabase Auth & Cases State
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [cases, setCases] = useState<Case[]>([]);
   const [activeCaseId, setActiveCaseId] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([DEFAULT_WELCOME_MSG]);
@@ -88,6 +89,7 @@ export default function Home() {
     }
 
     setUser(session.user);
+    setProfile(profile);
     fetchCases(session.user.id);
     fetchLawFiles();
   };
@@ -246,6 +248,9 @@ export default function Home() {
             completion_tokens: data.usage.completionTokens,
             total_tokens: data.usage.totalTokens
           }]);
+
+          // Update queries count locally in state
+          setProfile((prev: any) => prev ? { ...prev, queries_used: (prev.queries_used || 0) + 1 } : null);
         } catch (dbErr) {
           console.error("Failed to log token usage to Supabase:", dbErr);
         }
@@ -359,6 +364,39 @@ export default function Home() {
         <button className="new-case-btn" onClick={createNewCase}>
           <Plus size={18} /> إضافة قضية جديدة
         </button>
+
+        {/* Remaining Questions Progress Card */}
+        {profile && profile.role !== 'admin' && (
+          <div style={{ 
+            backgroundColor: 'rgba(212, 175, 55, 0.1)', 
+            padding: '12px 15px', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(212, 175, 55, 0.2)', 
+            margin: '15px 0', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '5px' 
+          }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>باقة الأسئلة المتاحة:</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: 'bold', color: 'var(--accent-color)' }}>
+                {Math.max(0, (profile.query_limit || 150) - (profile.queries_used || 0))} سؤال متبقي
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                من أصل {profile.query_limit || 150}
+              </span>
+            </div>
+            {/* Gold Progress Bar */}
+            <div style={{ width: '100%', height: '5px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '3px', marginTop: '5px', overflow: 'hidden' }}>
+              <div style={{ 
+                width: `${Math.min(100, Math.max(0, 100 - (((profile.queries_used || 0) / (profile.query_limit || 150)) * 100)))}%`, 
+                height: '100%', 
+                backgroundColor: 'var(--accent-color)',
+                transition: 'width 0.3s ease'
+              }}></div>
+            </div>
+          </div>
+        )}
 
         <h2 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}><MessageSquare size={16} /> القضايا الخاصة بك</h2>
         <div className="session-list">
