@@ -94,21 +94,70 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
     ]
   };
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body)
-  });
+  const models = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  let lastError: any = null;
 
-  if (!response.ok) {
-    const err = await response.text();
-    console.error('Gemini API Error:', err);
-    console.error('Payload sent:', JSON.stringify(body, null, 2));
-    throw new Error(`مشكلة في الاتصال بـ Gemini: ${err}`);
+  for (const model of models) {
+    let attempts = 3;
+    while (attempts > 0) {
+      try {
+        console.log(`Attempting Gemini API call with model: ${model} (Attempts remaining: ${attempts})`);
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            return data.candidates[0].content.parts[0].text;
+          }
+          throw new Error('Unexpected response format from Gemini API');
+        }
+
+        const errStatus = response.status;
+        const errText = await response.text();
+        console.warn(`Gemini API returned status ${errStatus} for model ${model}:`, errText);
+        
+        let parsedMessage = errText;
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed.error?.message) {
+            parsedMessage = parsed.error.message;
+          }
+        } catch (_) {}
+        
+        lastError = new Error(parsedMessage);
+
+        // Retry on rate limit (429) or server error (503/5xx)
+        if (errStatus === 429 || errStatus === 503 || errStatus >= 500) {
+          attempts--;
+          if (attempts > 0) {
+            console.log(`Retrying model ${model} in ${1500 * (3 - attempts)}ms...`);
+            await delay(1500 * (3 - attempts));
+            continue;
+          }
+        }
+        
+        // Break out of retry loop for client/other errors (like bad request 400 or unauthorized 403)
+        break;
+
+      } catch (e: any) {
+        console.error(`Network or unexpected error during Gemini API call with model ${model}:`, e);
+        lastError = e;
+        attempts--;
+        if (attempts > 0) {
+          await delay(1000);
+          continue;
+        }
+        break;
+      }
+    }
   }
 
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
+  throw new Error(`مشكلة في الاتصال بـ Gemini: ${lastError?.message || lastError || 'حدث خطأ غير معروف'}`);
 }
