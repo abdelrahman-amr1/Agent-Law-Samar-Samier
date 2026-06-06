@@ -235,6 +235,21 @@ export default function Home() {
         setMessages(prev => [...prev, insertedAgentMsg]);
       }
 
+      // Log AI token usage stats
+      if (data.usage && user) {
+        try {
+          await supabase.from('ai_token_usage').insert([{
+            lawyer_id: user.id,
+            model_used: data.model || 'gemini-3.5-flash',
+            prompt_tokens: data.usage.promptTokens,
+            completion_tokens: data.usage.completionTokens,
+            total_tokens: data.usage.totalTokens
+          }]);
+        } catch (dbErr) {
+          console.error("Failed to log token usage to Supabase:", dbErr);
+        }
+      }
+
       // Update case title if it's the first real message
       const currentCase = cases.find(c => c.id === currentCaseId);
       if (currentCase?.title.includes('قضية جديدة') && userMsgContent.trim()) {

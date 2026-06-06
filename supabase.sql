@@ -162,3 +162,30 @@ CREATE POLICY "Admins can insert settings"
 
 -- Server API route needs to read it anonymously (using Anon Key)
 CREATE POLICY "Allow anon read settings" ON public.settings FOR SELECT USING (true);
+
+-- 7. AI Token Usage Table
+CREATE TABLE public.ai_token_usage (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  lawyer_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  model_used TEXT NOT NULL,
+  prompt_tokens INTEGER NOT NULL DEFAULT 0,
+  completion_tokens INTEGER NOT NULL DEFAULT 0,
+  total_tokens INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.ai_token_usage ENABLE ROW LEVEL SECURITY;
+
+-- Allow anon insertions (from API route)
+CREATE POLICY "Allow anon insert token usage" ON public.ai_token_usage FOR INSERT WITH CHECK (true);
+
+-- Allow admins to read all token usage data
+CREATE POLICY "Admins can view token usage"
+  ON public.ai_token_usage FOR SELECT
+  USING ( EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') );
+
+-- Allow lawyers to see their own usage stats
+CREATE POLICY "Lawyers can view own token usage"
+  ON public.ai_token_usage FOR SELECT
+  USING ( auth.uid() = lawyer_id );
+

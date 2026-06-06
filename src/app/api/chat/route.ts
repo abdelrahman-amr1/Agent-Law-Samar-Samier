@@ -156,14 +156,18 @@ export async function POST(req: Request) {
 
     // --- 4. Generate response from Gemini ---
     console.log("Generating Response from Gemini...");
-    const responseText = await generateChatResponse(apiKey, message, SYSTEM_PROMPT, allFiles, history);
+    const chatResult = await generateChatResponse(apiKey, message, SYSTEM_PROMPT, allFiles, history);
 
     // Clean up temp file
     if (tmpFilePath && fs.existsSync(tmpFilePath)) {
       fs.unlinkSync(tmpFilePath);
     }
 
-    return NextResponse.json({ response: responseText });
+    return NextResponse.json({
+      response: chatResult.text,
+      model: chatResult.model,
+      usage: chatResult.usage
+    });
 
   } catch (error: any) {
     console.error('API Chat Error:', error);

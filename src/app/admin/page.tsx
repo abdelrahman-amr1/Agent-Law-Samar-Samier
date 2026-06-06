@@ -29,6 +29,11 @@ export default function AdminDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Token stats states
+  const [totalTokensToday, setTotalTokensToday] = useState(0);
+  const [totalTokensMonth, setTotalTokensMonth] = useState(0);
+  const [requestsToday, setRequestsToday] = useState(0);
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -42,6 +47,7 @@ export default function AdminDashboard() {
     fetchLawyersAndStats();
     fetchLawFiles();
     fetchSystemApiKey();
+    fetchTokenStats();
   }, []);
 
   const checkAdmin = async () => {
@@ -65,6 +71,39 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
+  const fetchTokenStats = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startOfToday = today.toISOString();
+
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+
+      // Fetch today's usage
+      const { data: todayData } = await supabase
+        .from('ai_token_usage')
+        .select('total_tokens')
+        .gte('created_at', startOfToday);
+
+      const sumToday = todayData ? todayData.reduce((acc, t) => acc + (t.total_tokens || 0), 0) : 0;
+      const reqsToday = todayData ? todayData.length : 0;
+
+      // Fetch month's usage
+      const { data: monthData } = await supabase
+        .from('ai_token_usage')
+        .select('total_tokens')
+        .gte('created_at', startOfMonth);
+
+      const sumMonth = monthData ? monthData.reduce((acc, t) => acc + (t.total_tokens || 0), 0) : 0;
+
+      setTotalTokensToday(sumToday);
+      setTotalTokensMonth(sumMonth);
+      setRequestsToday(reqsToday);
+    } catch (e) {
+      console.error("Error fetching token stats:", e);
+    }
+  };
+
   const fetchLawyersAndStats = async () => {
     // Get all lawyers
     const { data: profiles } = await supabase
@@ -73,14 +112,25 @@ export default function AdminDashboard() {
       .eq('role', 'lawyer');
 
     if (profiles) {
-      // Get case counts for each
+      // Get case counts and token count for each
       const stats = await Promise.all(profiles.map(async (p) => {
         const { count } = await supabase
           .from('cases')
           .select('id', { count: 'exact' })
           .eq('lawyer_id', p.id);
+
+        let tokenCount = 0;
+        try {
+          const { data: tokenData } = await supabase
+            .from('ai_token_usage')
+            .select('total_tokens')
+            .eq('lawyer_id', p.id);
+          if (tokenData) {
+            tokenCount = tokenData.reduce((acc, t) => acc + (t.total_tokens || 0), 0);
+          }
+        } catch (_) {}
         
-        return { ...p, caseCount: count || 0 };
+        return { ...p, caseCount: count || 0, tokenCount };
       }));
       setLawyers(stats);
     }
@@ -332,6 +382,55 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* AI Usage Cards */}
+      <h2 style={{ fontSize: '1.2rem', marginBottom: '15px', color: 'var(--text-primary)', fontWeight: 'bold' }}>إحصائيات استخدام الذكاء الاصطناعي (Gemini)</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ backgroundColor: 'rgba(52, 152, 219, 0.1)', padding: '15px', borderRadius: '50%' }}>
+            <Activity size={24} color="#3498db" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>
+              {requestsToday} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ 4,500</span>
+            </h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>الطلبات اليومية المستهلكة</span>
+          </div>
+        </div>
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ backgroundColor: 'rgba(230, 126, 34, 0.1)', padding: '15px', borderRadius: '50%' }}>
+            <Activity size={24} color="#e67e22" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>
+              {Math.max(0, 4500 - requestsToday).toLocaleString('en-US')}
+            </h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>الطلبات المتاحة المتبقية اليوم</span>
+          </div>
+        </div>
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ backgroundColor: 'rgba(46, 204, 113, 0.1)', padding: '15px', borderRadius: '50%' }}>
+            <FileText size={24} color="#2ecc71" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', margin: 0 }}>
+              {totalTokensToday.toLocaleString('en-US')}
+            </h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>التوكنز المستهلكة اليوم</span>
+          </div>
+        </div>
+        <div style={{ backgroundColor: 'var(--panel-bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ backgroundColor: 'rgba(155, 89, 182, 0.1)', padding: '15px', borderRadius: '50%' }}>
+            <FileText size={24} color="#9b59b6" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', margin: 0 }}>
+              {totalTokensMonth.toLocaleString('en-US')}
+            </h3>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>التوكنز المستهلكة هذا الشهر</span>
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
         {/* System Settings Panel */}
         <div style={{ backgroundColor: 'var(--panel-bg)', padding: '25px', borderRadius: '12px', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
@@ -450,6 +549,7 @@ export default function AdminDashboard() {
               <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
                 <th style={{ padding: '10px' }}>اسم المحامي</th>
                 <th style={{ padding: '10px' }}>إجمالي القضايا (المحادثات)</th>
+                <th style={{ padding: '10px' }}>التوكنز المستهلكة</th>
                 <th style={{ padding: '10px', textAlign: 'center' }}>حالة الحساب</th>
                 <th style={{ padding: '10px', textAlign: 'center' }}>إجراءات</th>
               </tr>
@@ -459,6 +559,7 @@ export default function AdminDashboard() {
                 <tr key={l.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <td style={{ padding: '15px 10px' }}>{l.full_name}</td>
                   <td style={{ padding: '15px 10px', fontWeight: 'bold', color: 'var(--accent-color)' }}>{l.caseCount}</td>
+                  <td style={{ padding: '15px 10px', fontWeight: 'bold', color: '#3498db' }}>{(l.tokenCount || 0).toLocaleString('en-US')}</td>
                   <td style={{ padding: '15px 10px', textAlign: 'center' }}>
                     <button 
                       onClick={() => handleToggleStatus(l.id, l.is_active !== false)}
@@ -485,7 +586,7 @@ export default function AdminDashboard() {
                 </tr>
               ))}
               {lawyers.length === 0 && (
-                <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد محامين حالياً. قم بإنشاء حساب جديد من اللوحة المجاورة.</td></tr>
+                <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>لا يوجد محامين حالياً. قم بإنشاء حساب جديد من اللوحة المجاورة.</td></tr>
               )}
             </tbody>
           </table>

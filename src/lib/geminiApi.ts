@@ -114,7 +114,15 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
         if (response.ok) {
           const data = await response.json();
           if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-            return data.candidates[0].content.parts[0].text;
+            return {
+              text: data.candidates[0].content.parts[0].text,
+              model: model,
+              usage: {
+                promptTokens: data.usageMetadata?.promptTokenCount || 0,
+                completionTokens: data.usageMetadata?.candidatesTokenCount || 0,
+                totalTokens: data.usageMetadata?.totalTokenCount || 0
+              }
+            };
           }
           throw new Error('Unexpected response format from Gemini API');
         }
