@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editTargetId, setEditTargetId] = useState('');
   const [editFullName, setEditFullName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [editQueryLimit, setEditQueryLimit] = useState(150);
   const [editQueriesUsed, setEditQueriesUsed] = useState(0);
@@ -256,6 +257,7 @@ export default function AdminDashboard() {
         body: JSON.stringify({ 
           targetUserId: editTargetId, 
           full_name: editFullName, 
+          email: editEmail,
           password: editPassword || undefined,
           query_limit: editQueryLimit,
           queries_used: editQueriesUsed
@@ -590,6 +592,7 @@ export default function AdminDashboard() {
                       <button onClick={() => { 
                         setEditTargetId(l.id); 
                         setEditFullName(l.full_name); 
+                        setEditEmail(l.email || '');
                         setEditPassword(''); 
                         setEditQueryLimit(l.query_limit || 150);
                         setEditQueriesUsed(l.queries_used || 0);
@@ -620,6 +623,10 @@ export default function AdminDashboard() {
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>الاسم بالكامل</label>
                 <input type="text" required value={editFullName} onChange={e => setEditFullName(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>البريد الإلكتروني</label>
+                <input type="email" required value={editEmail} onChange={e => setEditEmail(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>حد الأسئلة المسموح بها</label>

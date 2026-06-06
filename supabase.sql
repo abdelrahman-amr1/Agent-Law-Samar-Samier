@@ -4,6 +4,7 @@
 CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   full_name TEXT NOT NULL,
+  email TEXT,
   role TEXT NOT NULL CHECK (role IN ('admin', 'lawyer')),
   is_active BOOLEAN DEFAULT true NOT NULL,
   query_limit INTEGER DEFAULT 150 NOT NULL,
