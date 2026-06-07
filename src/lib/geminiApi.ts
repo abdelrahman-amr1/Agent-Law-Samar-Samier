@@ -94,7 +94,7 @@ export async function generateChatResponse(apiKey: string, prompt: string, syste
     ]
   };
 
-  const models = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+  const models = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.1-flash-lite', 'gemini-1.5-flash'];
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   let lastError: any = null;
 

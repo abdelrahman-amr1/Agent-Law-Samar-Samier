@@ -401,7 +401,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <h3 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>
-              {requestsToday} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ 4,500</span>
+              {requestsToday} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ 560</span>
             </h3>
             <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>الطلبات اليومية المستهلكة</span>
           </div>
@@ -412,7 +412,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <h3 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>
-              {Math.max(0, 4500 - requestsToday).toLocaleString('en-US')}
+              {Math.max(0, 560 - requestsToday).toLocaleString('en-US')}
             </h3>
             <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>الطلبات المتاحة المتبقية اليوم</span>
           </div>
