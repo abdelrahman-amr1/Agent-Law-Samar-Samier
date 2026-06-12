@@ -9,12 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.1",
+    "formidable": "^3.5.1",
     "lucide-react": "^0.378.0",
     "next": "14.2.3",
     "react": "^18",
-    "react-dom": "^18",
-    "formidable": "^3.5.1",
-    "@supabase/supabase-js": "^2.43.0"
+    "react-dom": "^18"
   },
   "devDependencies": {
     "@types/formidable": "^3.4.5",
