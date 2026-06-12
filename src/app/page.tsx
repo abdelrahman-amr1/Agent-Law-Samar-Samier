@@ -22,7 +22,7 @@ interface Case {
 const DEFAULT_WELCOME_MSG: Message = {
   id: 'welcome',
   role: 'agent',
-  content: 'مرحباً بك أستاذي. أنا المساعد القانوني الذكي الخاص بك. تفضل برفع ملف الدعوى واطلب مني ما تشاء.'
+  content: 'مرحباً بك أستاذي. أنا سَنَد، شريكك القانوني الذكي. تفضل برفع ملف الدعوى واطلب مني ما تشاء.'
 };
 
 const THINKING_STEPS = [
@@ -441,7 +441,7 @@ export default function Home() {
             <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
               <Menu size={24} />
             </button>
-            <h1>المستشار القانوني الذكي</h1>
+            <h1>سَنَد | شريكك القانوني الذكي</h1>
           </div>
           <Bot size={32} color="var(--accent-color)" />
         </header>
@@ -451,7 +451,7 @@ export default function Home() {
             <div key={msg.id || index} className={`message ${msg.role}`}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-color)', fontWeight: 'bold' }}>
                 {msg.role === 'agent' ? <Bot size={18} /> : <User size={18} />}
-                <span>{msg.role === 'agent' ? 'المستشار' : 'أنت'}</span>
+                <span>{msg.role === 'agent' ? 'سَنَد' : 'أنت'}</span>
               </div>
               
               {msg.file_name && (

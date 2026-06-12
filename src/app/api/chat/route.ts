@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { SYSTEM_PROMPT } from '@/lib/systemPrompt';
 import { uploadToGemini, generateChatResponse } from '@/lib/geminiApi';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     if (lawyerId) {
-      const { data: profile } = await supabase
+      const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('query_limit, queries_used, role')
         .eq('id', lawyerId)
@@ -181,21 +181,28 @@ export async function POST(req: Request) {
     }
 
     // Increment queries_used in user profile
+    fs.appendFileSync('chat_api_debug.log', `[${new Date().toISOString()}] lawyerId: ${lawyerId}\n`);
     if (lawyerId) {
       try {
-        const { data: currentProfile } = await supabase
+        const { data: currentProfile, error: selectError } = await supabaseAdmin
           .from('profiles')
           .select('queries_used')
           .eq('id', lawyerId)
           .single();
         
+        fs.appendFileSync('chat_api_debug.log', `[${new Date().toISOString()}] select result: ${JSON.stringify(currentProfile)} error: ${JSON.stringify(selectError)}\n`);
+        
         if (currentProfile) {
-          await supabase
+          const { data: updateData, error: updateError } = await supabaseAdmin
             .from('profiles')
             .update({ queries_used: (currentProfile.queries_used || 0) + 1 })
-            .eq('id', lawyerId);
+            .eq('id', lawyerId)
+            .select();
+            
+          fs.appendFileSync('chat_api_debug.log', `[${new Date().toISOString()}] update result: ${JSON.stringify(updateData)} error: ${JSON.stringify(updateError)}\n`);
         }
-      } catch (err) {
+      } catch (err: any) {
+        fs.appendFileSync('chat_api_debug.log', `[${new Date().toISOString()}] catch error: ${err.message || err}\n`);
         console.error("Failed to increment queries_used:", err);
       }
     }

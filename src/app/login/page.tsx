@@ -63,8 +63,8 @@ export default function Login() {
       <div style={{ width: '100%', maxWidth: '400px', padding: '40px', backgroundColor: 'var(--panel-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <Bot size={48} color="var(--accent-color)" style={{ marginBottom: '10px' }} />
-          <h2 style={{ color: 'var(--accent-color)' }}>نظام المستشار القانوني</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '5px' }}>تسجيل الدخول للمحامين والإدارة</p>
+          <h2 style={{ color: 'var(--accent-color)' }}>سَنَد</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '5px' }}>شريكك القانوني الذكي | تسجيل الدخول للمحامين والإدارة</p>
         </div>
 
         {error && (

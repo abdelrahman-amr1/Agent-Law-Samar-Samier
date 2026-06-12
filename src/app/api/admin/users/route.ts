@@ -1,17 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { supabase as normalSupabase } from '@/lib/supabase'; // to verify requester token
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ychlfrrmtmvoqgsimlfq.supabase.co';
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljaGxmcnJtdG12b3Fnc2ltbGZxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODg4MjgzNiwiZXhwIjoyMDk0NDU4ODM2fQ.XBWUlL8IgwYJrt0mQ9VCXTtHuLIrnvauqs76rRq9RB0';
-
-// Admin-level Supabase client
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+import { supabase as normalSupabase, supabaseAdmin } from '@/lib/supabase'; // to verify requester token
 
 export async function POST(req: Request) {
   try {
@@ -39,10 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 });
     }
 
-    // 2. Check Service Role Key existence
-    if (!serviceRoleKey) {
-      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY is not configured on the server. Please add it to Vercel Environment Variables.' }, { status: 500 });
-    }
+
 
     // 3. Extract payload
     const { email, password, full_name } = await req.json();
