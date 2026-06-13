@@ -195,7 +195,7 @@ export default function Home() {
 
   const createNewCase = async () => {
     if (!user) return;
-    const title = `قضية جديدة ${cases.length + 1}`;
+    const title = `محادثة جديدة ${cases.length + 1}`;
     const { data, error } = await supabase
       .from('cases')
       .insert([{ lawyer_id: user.id, title }])
@@ -301,7 +301,7 @@ export default function Home() {
 
       // Update case title if it's the first real message
       const currentCase = cases.find(c => c.id === currentCaseId);
-      if (currentCase?.title.includes('قضية جديدة') && userMsgContent.trim()) {
+      if ((currentCase?.title.includes('قضية جديدة') || currentCase?.title.includes('محادثة جديدة')) && userMsgContent.trim()) {
         const newTitle = userMsgContent.trim().substring(0, 30) + '...';
         await supabase.from('cases').update({ title: newTitle }).eq('id', currentCaseId);
         setCases(cases.map(c => c.id === currentCaseId ? { ...c, title: newTitle } : c));
@@ -610,7 +610,7 @@ export default function Home() {
         </div>
 
         <button className="new-case-btn" onClick={createNewCase}>
-          <Plus size={18} /> إضافة قضية جديدة
+          <Plus size={18} /> محادثة جديدة مع سَنَد
         </button>
 
         {/* Remaining Questions Progress Card */}
@@ -727,13 +727,13 @@ export default function Home() {
               cursor: 'pointer'
             }}
           >
-            <ClipboardList size={16} /> تتبع قضايا الموكلين
+            <ClipboardList size={16} /> إدارة قضايا الموكلين
           </button>
         </div>
 
         <div className="section-divider"></div>
 
-        <h2 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}><MessageSquare size={16} /> القضايا الخاصة بك</h2>
+        <h2 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}><MessageSquare size={16} /> استشاراتك ومحادثاتك الذكية</h2>
         <div className="session-list">
           {cases.map(c => (
             <div 
@@ -747,7 +747,7 @@ export default function Home() {
               </div>
             </div>
           ))}
-          {cases.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>لا يوجد قضايا حالياً</p>}
+          {cases.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>لا يوجد محادثات حالياً</p>}
         </div>
 
         <div className="section-divider"></div>
@@ -778,7 +778,7 @@ export default function Home() {
               {activeTab === 'chat' && 'سَنَد | شريكك القانوني الذكي'}
               {activeTab === 'subdomain' && 'إعدادات موقعك الإلكتروني الفرعي'}
               {activeTab === 'bookings' && 'إدارة حجوزات واستشارات الموكلين'}
-              {activeTab === 'cases_mgmt' && 'تفعيل تتبع قضايا الموكلين'}
+              {activeTab === 'cases_mgmt' && 'إدارة قضايا الموكلين'}
             </h1>
           </div>
           <Bot size={32} color="var(--accent-color)" />
@@ -859,7 +859,7 @@ export default function Home() {
             <div className="input-area">
               {isChatLocked ? (
                 <div style={{ textAlign: 'center', padding: '20px', backgroundColor: 'var(--panel-bg)', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-                  تم إغلاق هذه القضية وإصدار المذكرة. يرجى <button onClick={createNewCase} style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline', padding: 0 }}>فتح قضية جديدة</button> لطلب جديد.
+                  تم إغلاق هذه الجلسة وإصدار المذكرة. يرجى <button onClick={createNewCase} style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline', padding: 0 }}>فتح محادثة جديدة</button> لطلب جديد.
                 </div>
               ) : (
                 <>

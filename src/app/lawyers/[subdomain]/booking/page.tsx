@@ -18,6 +18,40 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
     }
     return path;
   };
+
+  const getNextDays = () => {
+    const days = [];
+    const weekdays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const months = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const value = `${year}-${month}-${day}`;
+      
+      const dayName = weekdays[date.getDay()];
+      const dayNum = date.getDate();
+      const monthName = months[date.getMonth()];
+      const label = `${dayNum} ${monthName}`;
+      
+      days.push({
+        value,
+        dayName,
+        label,
+        isToday: i === 0,
+        isTomorrow: i === 1
+      });
+    }
+    return days;
+  };
+
   const [submitLoading, setSubmitLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -96,7 +130,7 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
 
         const whatsappUrl = `https://api.whatsapp.com/send?phone=${normalizedPhone}&text=${encodeURIComponent(messageText)}`;
         if (typeof window !== 'undefined') {
-          window.open(whatsappUrl, '_blank');
+          window.location.href = whatsappUrl;
         }
       } catch (err) {
         console.error("Error opening WhatsApp:", err);
@@ -233,8 +267,45 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>التاريخ المفضل للمقابلة <span style={{ fontSize: '0.75rem', color: '#d4af37' }}>(انقر لفتح التقويم واختيار اليوم)</span></label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', color: '#94a3b8' }}>التاريخ المفضل للمقابلة:</label>
+                
+                {/* Quick Date Picker */}
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', direction: 'rtl', scrollbarWidth: 'none' }}>
+                  {getNextDays().map((day) => {
+                    const isSelected = formData.date === day.value;
+                    return (
+                      <button
+                        key={day.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, date: day.value }))}
+                        style={{
+                          flex: '0 0 auto',
+                          minWidth: '85px',
+                          padding: '8px 6px',
+                          borderRadius: '8px',
+                          border: isSelected ? '2px solid #d4af37' : '1px solid #2d3748',
+                          backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.15)' : '#0f1115',
+                          color: isSelected ? '#d4af37' : '#e2e8f0',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '2px',
+                          transition: 'all 0.2s ease',
+                          outline: 'none'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.7rem', opacity: 0.75 }}>
+                          {day.isToday ? 'اليوم' : day.isTomorrow ? 'غداً' : day.dayName}
+                        </span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{day.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Date Picker */}
                 <div style={{ position: 'relative' }}>
                   <Calendar size={16} color="#d4af37" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input 
