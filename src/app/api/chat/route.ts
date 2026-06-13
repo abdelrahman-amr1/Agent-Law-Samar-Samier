@@ -181,7 +181,7 @@ export async function POST(req: Request) {
     }
 
     // Increment queries_used in user profile
-    fs.appendFileSync('chat_api_debug.log', `[${new Date().toISOString()}] lawyerId: ${lawyerId}\n`);
+    console.log(`[chat_api_debug] lawyerId: ${lawyerId}`);
     if (lawyerId) {
       try {
         const { data: currentProfile, error: selectError } = await supabaseAdmin
@@ -190,7 +190,7 @@ export async function POST(req: Request) {
           .eq('id', lawyerId)
           .single();
         
-        fs.appendFileSync('chat_api_debug.log', `[${new Date().toISOString()}] select result: ${JSON.stringify(currentProfile)} error: ${JSON.stringify(selectError)}\n`);
+        console.log(`[chat_api_debug] select result: ${JSON.stringify(currentProfile)} error: ${JSON.stringify(selectError)}`);
         
         if (currentProfile) {
           const { data: updateData, error: updateError } = await supabaseAdmin
@@ -199,10 +199,10 @@ export async function POST(req: Request) {
             .eq('id', lawyerId)
             .select();
             
-          fs.appendFileSync('chat_api_debug.log', `[${new Date().toISOString()}] update result: ${JSON.stringify(updateData)} error: ${JSON.stringify(updateError)}\n`);
+          console.log(`[chat_api_debug] update result: ${JSON.stringify(updateData)} error: ${JSON.stringify(updateError)}`);
         }
       } catch (err: any) {
-        fs.appendFileSync('chat_api_debug.log', `[${new Date().toISOString()}] catch error: ${err.message || err}\n`);
+        console.log(`[chat_api_debug] catch error: ${err.message || err}`);
         console.error("Failed to increment queries_used:", err);
       }
     }
