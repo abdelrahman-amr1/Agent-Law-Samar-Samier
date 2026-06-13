@@ -881,11 +881,20 @@ export default function Home() {
                   />
                 </div>
                 {subdomain.trim() && (
-                  <div style={{ marginTop: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)', direction: 'rtl', textAlign: 'right' }}>
-                    موقعك متاح الآن على الرابط: {' '}
-                    <a href={`https://${subdomain.toLowerCase()}.sanad-law.vercel.app`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline', fontWeight: 'bold' }}>
-                      {`https://${subdomain.toLowerCase()}.sanad-law.vercel.app`}
-                    </a>
+                  <div style={{ marginTop: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)', direction: 'rtl', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div>
+                      <span>🔗 رابط المعاينة والوصول المباشر (التجريبي): </span>
+                      <a href={`https://sanad-law.vercel.app/lawyers/${subdomain.toLowerCase()}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline', fontWeight: 'bold', marginRight: '5px' }}>
+                        {`https://sanad-law.vercel.app/lawyers/${subdomain.toLowerCase()}`}
+                      </a>
+                    </div>
+                    <div style={{ opacity: 0.85, fontSize: '0.8rem' }}>
+                      <span>🌐 رابط الدومين الفرعي (يتطلب دومين مخصص): </span>
+                      <a href={`https://${subdomain.toLowerCase()}.sanad-law.vercel.app`} target="_blank" rel="noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'underline', marginRight: '5px' }}>
+                        {`https://${subdomain.toLowerCase()}.sanad-law.vercel.app`}
+                      </a>
+                      <span style={{ color: '#e74c3c', marginRight: '5px', fontSize: '0.75rem' }}>(غير مدعوم افتراضياً على vercel.app بدون إضافة دومين مخصص لمشروعك في Vercel)</span>
+                    </div>
                   </div>
                 )}
               </div>

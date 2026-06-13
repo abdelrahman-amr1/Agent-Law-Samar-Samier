@@ -9,6 +9,15 @@ export default function LawyerCaseTracking({ params }: { params: { subdomain: st
   const { subdomain } = params;
   const [lawyer, setLawyer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const getLinkPath = (path: string) => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname.startsWith('/lawyers/')) {
+        return `/lawyers/${subdomain}${path === '/' ? '' : path}`;
+      }
+    }
+    return path;
+  };
   const [searchLoading, setSearchLoading] = useState(false);
   const [caseData, setCaseData] = useState<any>(null);
   const [error, setError] = useState('');
@@ -256,7 +265,7 @@ export default function LawyerCaseTracking({ params }: { params: { subdomain: st
       
       {/* Header */}
       <header style={{ width: '100%', padding: '20px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2d3748', backgroundColor: '#1a1d24' }}>
-        <Link href={`/`} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d4af37', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
+        <Link href={getLinkPath('/')} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d4af37', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
           <ArrowLeft size={16} /> العودة للرئيسية
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', direction: 'rtl' }}>

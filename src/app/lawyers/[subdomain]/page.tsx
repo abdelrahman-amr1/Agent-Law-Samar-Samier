@@ -10,6 +10,15 @@ export default function LawyerHome({ params }: { params: { subdomain: string } }
   const [lawyer, setLawyer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const getLinkPath = (path: string) => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname.startsWith('/lawyers/')) {
+        return `/lawyers/${subdomain}${path}`;
+      }
+    }
+    return path;
+  };
+
   useEffect(() => {
     fetchLawyerProfile();
   }, [subdomain]);
@@ -68,10 +77,10 @@ export default function LawyerHome({ params }: { params: { subdomain: string } }
           </div>
         </div>
         <div style={{ display: 'flex', gap: '15px' }}>
-          <Link href={`/booking`} style={{ color: '#0f1115', backgroundColor: '#d4af37', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', fontSize: '0.9rem', transition: 'background-color 0.2s' }}>
+          <Link href={getLinkPath('/booking')} style={{ color: '#0f1115', backgroundColor: '#d4af37', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', fontSize: '0.9rem', transition: 'background-color 0.2s' }}>
             حجز استشارة
           </Link>
-          <Link href={`/track-case`} style={{ color: '#d4af37', border: '1px solid #d4af37', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', fontSize: '0.9rem', transition: 'all 0.2s' }}>
+          <Link href={getLinkPath('/track-case')} style={{ color: '#d4af37', border: '1px solid #d4af37', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', fontSize: '0.9rem', transition: 'all 0.2s' }}>
             تتبع قضيتك
           </Link>
         </div>
@@ -88,10 +97,10 @@ export default function LawyerHome({ params }: { params: { subdomain: string } }
           {lawyer.bio || 'نقدم خدمات قانونية متكاملة واحترافية لحماية مصالحكم وحقوقكم بالاعتماد على أحدث الاستراتيجيات والأحكام القانونية المعتمدة.'}
         </p>
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link href={`/booking`} style={{ color: '#0f1115', backgroundColor: '#d4af37', padding: '12px 30px', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none', fontSize: '1.05rem', boxShadow: '0 4px 14px rgba(212, 175, 55, 0.3)' }}>
+          <Link href={getLinkPath('/booking')} style={{ color: '#0f1115', backgroundColor: '#d4af37', padding: '12px 30px', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none', fontSize: '1.05rem', boxShadow: '0 4px 14px rgba(212, 175, 55, 0.3)' }}>
             حجز موعد مقابلة
           </Link>
-          <Link href={`/track-case`} style={{ color: '#e2e8f0', border: '1px solid #2d3748', backgroundColor: '#1a1d24', padding: '12px 30px', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none', fontSize: '1.05rem' }}>
+          <Link href={getLinkPath('/track-case')} style={{ color: '#e2e8f0', border: '1px solid #2d3748', backgroundColor: '#1a1d24', padding: '12px 30px', borderRadius: '8px', fontWeight: 'bold', textDecoration: 'none', fontSize: '1.05rem' }}>
             الاستعلام عن قضية
           </Link>
         </div>

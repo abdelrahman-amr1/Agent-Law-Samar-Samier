@@ -9,6 +9,15 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
   const { subdomain } = params;
   const [lawyer, setLawyer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const getLinkPath = (path: string) => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname.startsWith('/lawyers/')) {
+        return `/lawyers/${subdomain}${path === '/' ? '' : path}`;
+      }
+    }
+    return path;
+  };
   const [submitLoading, setSubmitLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -98,7 +107,7 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
       
       {/* Header */}
       <header style={{ width: '100%', padding: '20px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2d3748', backgroundColor: '#1a1d24' }}>
-        <Link href={`/`} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d4af37', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
+        <Link href={getLinkPath('/')} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d4af37', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 'bold' }}>
           <ArrowLeft size={16} /> العودة للرئيسية
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', direction: 'rtl' }}>
@@ -118,7 +127,7 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
               <p style={{ color: '#94a3b8', lineHeight: '1.7', fontSize: '0.95rem' }}>
                 نشكرك على ثقتك. تم استلام طلب موعدك بنجاح، وسيقوم مكتب الأستاذ بالتواصل معك لتأكيد الموعد النهائي قريباً.
               </p>
-              <Link href={`/`} style={{ marginTop: '15px', color: '#0f1115', backgroundColor: '#d4af37', padding: '10px 25px', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', display: 'inline-block' }}>
+              <Link href={getLinkPath('/')} style={{ marginTop: '15px', color: '#0f1115', backgroundColor: '#d4af37', padding: '10px 25px', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', display: 'inline-block' }}>
                 العودة للموقع
               </Link>
             </div>
