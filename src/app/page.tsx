@@ -388,22 +388,11 @@ export default function Home() {
 
   // Subdomain Settings Save
   const handleSaveSubdomain = async () => {
-    if (!subdomain.trim()) {
-      alert("الرجاء كتابة اسم النطاق الفرعي (Subdomain).");
-      return;
-    }
-    const subdomainRegex = /^[a-zA-Z0-9-]+$/;
-    if (!subdomainRegex.test(subdomain)) {
-      alert("اسم النطاق الفرعي يجب أن يحتوي على أحرف إنجليزية وأرقام وعلامة الشرطة (-) فقط، بدون مسافات أو رموز خاصة.");
-      return;
-    }
-
     setSaveLoading(true);
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
-          subdomain: subdomain.trim().toLowerCase(),
           title: title.trim(),
           bio: bio.trim(),
           office_address: officeAddress.trim(),
@@ -415,20 +404,15 @@ export default function Home() {
       
       setProfile({
         ...profile,
-        subdomain: subdomain.trim().toLowerCase(),
         title: title.trim(),
         bio: bio.trim(),
         office_address: officeAddress.trim(),
         public_phone: publicPhone.trim()
       });
-      alert("تم حفظ إعدادات الموقع وتحديث الدومين الفرعي بنجاح!");
+      alert("تم حفظ إعدادات الموقع بنجاح!");
     } catch (err: any) {
       console.error(err);
-      if (err.message?.includes('unique constraint') || err.code === '23505') {
-        alert("عذراً، هذا النطاق الفرعي محجوز لمحامٍ آخر. يرجى اختيار اسم آخر.");
-      } else {
-        alert("حدث خطأ أثناء حفظ الإعدادات: " + err.message);
-      }
+      alert("حدث خطأ أثناء حفظ الإعدادات: " + err.message);
     } finally {
       setSaveLoading(false);
     }
@@ -867,34 +851,26 @@ export default function Home() {
               <h3 style={{ color: 'var(--accent-color)', fontSize: '1.2rem', margin: 0, fontWeight: 'bold' }}>معلومات الموقع والنطاق</h3>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>النطاق الفرعي (Subdomain)</label>
-                <div style={{ display: 'flex', alignItems: 'stretch', direction: 'ltr' }}>
-                  <span style={{ backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRight: 'none', padding: '10px 15px', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', borderTopLeftRadius: '6px', borderBottomLeftRadius: '6px' }}>
-                    .sanad-law.vercel.app
-                  </span>
-                  <input 
-                    type="text" 
-                    value={subdomain} 
-                    onChange={(e) => setSubdomain(e.target.value)}
-                    placeholder="e.g. ahmed-lawyer" 
-                    style={{ flex: 1, padding: '10px 15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderTopRightRadius: '6px', borderBottomRightRadius: '6px', color: 'var(--text-primary)', outline: 'none', direction: 'ltr' }}
-                  />
-                </div>
-                {subdomain.trim() && (
-                  <div style={{ marginTop: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)', direction: 'rtl', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>رابط الموقع الخاص بك</label>
+                {subdomain.trim() ? (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', direction: 'rtl', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '12px', padding: '15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                     <div>
                       <span>🔗 رابط المعاينة والوصول المباشر (التجريبي): </span>
                       <a href={`https://sanad-law.vercel.app/lawyers/${subdomain.toLowerCase()}`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline', fontWeight: 'bold', marginRight: '5px' }}>
                         {`https://sanad-law.vercel.app/lawyers/${subdomain.toLowerCase()}`}
                       </a>
                     </div>
-                    <div style={{ opacity: 0.85, fontSize: '0.8rem' }}>
+                    <div style={{ opacity: 0.85, fontSize: '0.8rem', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
                       <span>🌐 رابط الدومين الفرعي (يتطلب دومين مخصص): </span>
                       <a href={`https://${subdomain.toLowerCase()}.sanad-law.vercel.app`} target="_blank" rel="noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'underline', marginRight: '5px' }}>
                         {`https://${subdomain.toLowerCase()}.sanad-law.vercel.app`}
                       </a>
                       <span style={{ color: '#e74c3c', marginRight: '5px', fontSize: '0.75rem' }}>(غير مدعوم افتراضياً على vercel.app بدون إضافة دومين مخصص لمشروعك في Vercel)</span>
                     </div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    يرجى التواصل مع الإدارة لتهيئة النطاق الفرعي الخاص بك وتفعيل موقعك الإلكتروني.
                   </div>
                 )}
               </div>
