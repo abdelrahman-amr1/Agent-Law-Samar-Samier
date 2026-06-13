@@ -63,7 +63,7 @@ export default function LawyerCaseTracking({ params }: { params: { subdomain: st
 
     try {
       const { data, error: dbError } = await supabase
-        .from('cases')
+        .from('client_cases')
         .select('*')
         .eq('lawyer_id', lawyer.id)
         .eq('case_number', searchParams.caseNumber.trim())

@@ -76,6 +76,32 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
 
       if (insertError) throw insertError;
       setSuccess(true);
+
+      // WhatsApp Redirect
+      try {
+        let publicPhone = lawyer.public_phone || '';
+        const cleanPhone = publicPhone.replace(/[^\d]/g, '');
+        let normalizedPhone = cleanPhone;
+        if (cleanPhone.startsWith('01') && cleanPhone.length === 11) {
+          normalizedPhone = '2' + cleanPhone;
+        }
+        
+        const messageText = `السلام عليكم أستاذ ${lawyer.full_name}، أود حجز موعد استشارة قانونية من خلال موقعك الإلكتروني.
+        
+📋 تفاصيل طلب الاستشارة:
+- الاسم: ${formData.name}
+- رقم الهاتف: ${formData.phone}
+- التاريخ المفضل: ${formData.date}
+- الاستشارة/الملاحظات: ${formData.notes || 'لا يوجد'}`;
+
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${normalizedPhone}&text=${encodeURIComponent(messageText)}`;
+        if (typeof window !== 'undefined') {
+          window.open(whatsappUrl, '_blank');
+        }
+      } catch (err) {
+        console.error("Error opening WhatsApp:", err);
+      }
+
     } catch (err: any) {
       console.error(err);
       setError('حدث خطأ أثناء إرسال طلب الحجز. يرجى مراجعة البيانات والمحاولة لاحقاً.');
@@ -123,11 +149,42 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
           {success ? (
             <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
               <CheckCircle2 size={64} color="#2ece72" />
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#2ece72' }}>تم إرسال طلب الحجز بنجاح</h3>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#2ece72' }}>تم تسجيل طلب الحجز بنجاح</h3>
               <p style={{ color: '#94a3b8', lineHeight: '1.7', fontSize: '0.95rem' }}>
-                نشكرك على ثقتك. تم استلام طلب موعدك بنجاح، وسيقوم مكتب الأستاذ بالتواصل معك لتأكيد الموعد النهائي قريباً.
+                تم استلام طلب موعدك بنجاح. يرجى الضغط على الزر الأخضر أدناه للانتقال إلى واتساب وتأكيد حجزك فوراً مع مكتب الأستاذ.
               </p>
-              <Link href={getLinkPath('/')} style={{ marginTop: '15px', color: '#0f1115', backgroundColor: '#d4af37', padding: '10px 25px', borderRadius: '6px', fontWeight: 'bold', textDecoration: 'none', display: 'inline-block' }}>
+              
+              <a 
+                href={`https://api.whatsapp.com/send?phone=${(lawyer.public_phone || '').replace(/[^\d]/g, '').startsWith('01') ? '2' + (lawyer.public_phone || '').replace(/[^\d]/g, '') : (lawyer.public_phone || '').replace(/[^\d]/g, '')}&text=${encodeURIComponent(`السلام عليكم أستاذ ${lawyer.full_name}، أود تأكيد حجز موعد استشارة قانونية.
+- الاسم: ${formData.name}
+- رقم الهاتف: ${formData.phone}
+- التاريخ: ${formData.date}
+- الاستشارة: ${formData.notes || 'لا يوجد'}`)}`}
+                target="_blank" 
+                rel="noreferrer"
+                style={{ 
+                  marginTop: '10px', 
+                  color: '#ffffff', 
+                  backgroundColor: '#25D366', 
+                  padding: '12px 25px', 
+                  borderRadius: '8px', 
+                  fontWeight: 'bold', 
+                  textDecoration: 'none', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  boxShadow: '0 4px 15px rgba(37, 211, 102, 0.4)',
+                  transition: 'all 0.2s',
+                  fontSize: '0.95rem'
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 001.333 4.982L2 22l5.233-1.371a9.936 9.936 0 004.773 1.218h.004c5.502 0 9.987-4.478 9.988-9.984 0-2.669-1.037-5.176-2.922-7.062C17.182 3.037 14.677 2 12.012 2zm0 1.711c2.204 0 4.277.859 5.838 2.421 1.562 1.562 2.421 3.634 2.421 5.84-.001 4.545-3.697 8.236-8.243 8.236-1.503 0-2.977-.41-4.264-1.189l-.306-.182-3.17.831.846-3.093-.2-.318a8.204 8.204 0 01-1.258-4.283c.001-4.546 3.699-8.246 8.245-8.246zm-2.072 3.823c-.157-.348-.323-.356-.473-.362-.122-.005-.262-.005-.402-.005a.774.774 0 00-.56.262c-.193.21-.735.717-.735 1.748s.75 2.028.855 2.168c.105.14 1.474 2.25 3.572 3.156.499.215.888.344 1.192.44.502.158.959.135 1.32.081.402-.06 1.226-.502 1.398-.987.172-.485.172-.9.121-.987-.05-.087-.193-.14-.403-.245s-1.226-.605-1.415-.674-.323-.105-.46.087c-.137.193-.53.674-.649.805-.12.13-.238.148-.448.043-.21-.105-.888-.327-1.692-1.044-.625-.558-1.047-1.247-1.17-1.457-.122-.21-.013-.323.092-.428.095-.095.21-.245.316-.367.105-.122.14-.21.21-.349.07-.14.035-.262-.018-.367-.052-.105-.466-1.123-.639-1.54z"/>
+                </svg>
+                متابعة عبر واتساب لتأكيد الحجز
+              </a>
+
+              <Link href={getLinkPath('/')} style={{ marginTop: '15px', color: '#94a3b8', fontSize: '0.85rem', textDecoration: 'none', display: 'inline-block', borderBottom: '1px dashed #94a3b8' }}>
                 العودة للموقع
               </Link>
             </div>
@@ -177,16 +234,21 @@ export default function LawyerBooking({ params }: { params: { subdomain: string 
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>التاريخ المفضل للمقابلة</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>التاريخ المفضل للمقابلة <span style={{ fontSize: '0.75rem', color: '#d4af37' }}>(انقر لفتح التقويم واختيار اليوم)</span></label>
                 <div style={{ position: 'relative' }}>
-                  <Calendar size={16} color="#d4af37" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Calendar size={16} color="#d4af37" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input 
                     type="date" 
                     name="date"
                     required
                     value={formData.date}
                     onChange={handleChange}
-                    style={{ width: '100%', padding: '12px 40px 12px 12px', backgroundColor: '#0f1115', border: '1px solid #2d3748', borderRadius: '6px', color: '#e2e8f0', outline: 'none', direction: 'rtl' }}
+                    onClick={(e) => {
+                      try {
+                        (e.target as any).showPicker?.();
+                      } catch (err) {}
+                    }}
+                    style={{ width: '100%', padding: '12px 40px 12px 12px', backgroundColor: '#0f1115', border: '1px solid #2d3748', borderRadius: '6px', color: '#e2e8f0', outline: 'none', direction: 'rtl', cursor: 'pointer' }}
                   />
                 </div>
               </div>

@@ -72,6 +72,10 @@ export default function Home() {
   const [mgmtNextSessionDate, setMgmtNextSessionDate] = useState('');
   const [mgmtLastUpdate, setMgmtLastUpdate] = useState('');
   const [selectedMgmtCaseId, setSelectedMgmtCaseId] = useState('');
+  const [clientCases, setClientCases] = useState<any[]>([]);
+  const [mgmtTitle, setMgmtTitle] = useState('');
+  const [mgmtClientName, setMgmtClientName] = useState('');
+  const [isAddingNewClientCase, setIsAddingNewClientCase] = useState(false);
 
   useEffect(() => {
     checkAuthAndLoad();
@@ -120,6 +124,7 @@ export default function Home() {
     fetchCases(session.user.id);
     fetchLawFiles();
     fetchBookings(session.user.id);
+    fetchClientCases(session.user.id);
   };
 
   const fetchLawFiles = async () => {
@@ -465,63 +470,130 @@ export default function Home() {
   };
 
   // Public Case Tracking Management
-  const handleSelectMgmtCase = (caseId: string) => {
-    setSelectedMgmtCaseId(caseId);
-    const c = cases.find(item => item.id === caseId);
-    if (c) {
-      const anyCase = c as any;
-      setMgmtCaseNumber(anyCase.case_number || '');
-      setMgmtClientPhone(anyCase.client_phone || '');
-      setMgmtStatus(anyCase.status || 'قيد المراجعة');
-      setMgmtNextSessionDate(anyCase.next_session_date || '');
-      setMgmtLastUpdate(anyCase.last_update || '');
+  const fetchClientCases = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('client_cases')
+        .select('*')
+        .eq('lawyer_id', userId)
+        .order('created_at', { ascending: false });
+      if (data && !error) {
+        setClientCases(data);
+      }
+    } catch (e) {
+      console.error("Error fetching client cases:", e);
     }
   };
 
-  const handleSaveCaseMgmt = async () => {
-    if (!selectedMgmtCaseId) {
-      alert("الرجاء اختيار قضية لتعديلها أولاً.");
-      return;
+  const handleSelectMgmtCase = (caseId: string) => {
+    setSelectedMgmtCaseId(caseId);
+    setIsAddingNewClientCase(false);
+    const c = clientCases.find(item => item.id === caseId);
+    if (c) {
+      setMgmtTitle(c.title || '');
+      setMgmtCaseNumber(c.case_number || '');
+      setMgmtClientName(c.client_name || '');
+      setMgmtClientPhone(c.client_phone || '');
+      setMgmtStatus(c.status || 'قيد الانتظار');
+      setMgmtNextSessionDate(c.next_session_date || '');
+      setMgmtLastUpdate(c.last_update || '');
     }
-    if (!mgmtCaseNumber.trim() || !mgmtClientPhone.trim()) {
-      alert("رقم القضية ورقم هاتف الموكل حقول إجبارية للتتبع.");
+  };
+
+  const handleAddNewClientCaseClick = () => {
+    setSelectedMgmtCaseId('');
+    setIsAddingNewClientCase(true);
+    setMgmtTitle('');
+    setMgmtCaseNumber('');
+    setMgmtClientName('');
+    setMgmtClientPhone('');
+    setMgmtStatus('قيد الانتظار');
+    setMgmtNextSessionDate('');
+    setMgmtLastUpdate('');
+  };
+
+  const handleSaveCaseMgmt = async () => {
+    if (!user) return;
+    if (!mgmtTitle.trim() || !mgmtCaseNumber.trim() || !mgmtClientName.trim() || !mgmtClientPhone.trim()) {
+      alert("يرجى ملء كافة الحقول الأساسية (اسم القضية، رقم القضية، اسم الموكل، ورقم هاتفه).");
       return;
     }
 
     setSaveLoading(true);
     try {
-      const { error } = await supabase
-        .from('cases')
-        .update({
+      if (isAddingNewClientCase) {
+        const { data, error } = await supabase
+          .from('client_cases')
+          .insert([{
+            lawyer_id: user.id,
+            title: mgmtTitle.trim(),
+            case_number: mgmtCaseNumber.trim(),
+            client_name: mgmtClientName.trim(),
+            client_phone: mgmtClientPhone.trim(),
+            status: mgmtStatus.trim(),
+            next_session_date: mgmtNextSessionDate || null,
+            last_update: mgmtLastUpdate.trim()
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        setClientCases([data, ...clientCases]);
+        alert("تم إضافة قضية التتبع بنجاح!");
+        setIsAddingNewClientCase(false);
+      } else if (selectedMgmtCaseId) {
+        const { error } = await supabase
+          .from('client_cases')
+          .update({
+            title: mgmtTitle.trim(),
+            case_number: mgmtCaseNumber.trim(),
+            client_name: mgmtClientName.trim(),
+            client_phone: mgmtClientPhone.trim(),
+            status: mgmtStatus.trim(),
+            next_session_date: mgmtNextSessionDate || null,
+            last_update: mgmtLastUpdate.trim()
+          })
+          .eq('id', selectedMgmtCaseId);
+
+        if (error) throw error;
+        setClientCases(clientCases.map(c => c.id === selectedMgmtCaseId ? {
+          ...c,
+          title: mgmtTitle.trim(),
           case_number: mgmtCaseNumber.trim(),
+          client_name: mgmtClientName.trim(),
           client_phone: mgmtClientPhone.trim(),
           status: mgmtStatus.trim(),
-          next_session_date: mgmtNextSessionDate ? mgmtNextSessionDate : null,
+          next_session_date: mgmtNextSessionDate,
           last_update: mgmtLastUpdate.trim()
-        })
-        .eq('id', selectedMgmtCaseId);
-
-      if (error) throw error;
-
-      setCases(cases.map(c => c.id === selectedMgmtCaseId ? {
-        ...c,
-        case_number: mgmtCaseNumber.trim(),
-        client_phone: mgmtClientPhone.trim(),
-        status: mgmtStatus.trim(),
-        next_session_date: mgmtNextSessionDate,
-        last_update: mgmtLastUpdate.trim()
-      } as any : c));
-
-      alert("تم حفظ تفاصيل تتبع القضية بنجاح!");
+        } : c));
+        alert("تم تحديث قضية التتبع بنجاح!");
+        setSelectedMgmtCaseId('');
+      }
     } catch (err: any) {
       console.error(err);
       if (err.message?.includes('unique constraint') || err.code === '23505') {
-        alert("رقم القضية هذا مستخدم بالفعل لقضية أخرى. يرجى إدخال رقم قضية فريد.");
+        alert("رقم القضية هذا مستخدم بالفعل. يرجى إدخال رقم قضية فريد.");
       } else {
-        alert("حدث خطأ أثناء حفظ تفاصيل التتبع: " + err.message);
+        alert("حدث خطأ أثناء الحفظ: " + err.message);
       }
     } finally {
       setSaveLoading(false);
+    }
+  };
+
+  const handleDeleteClientCase = async (id: string) => {
+    if (!confirm("هل أنت متأكد من حذف قضية التتبع هذه نهائياً؟")) return;
+    try {
+      const { error } = await supabase
+        .from('client_cases')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setClientCases(clientCases.filter(c => c.id !== id));
+      if (selectedMgmtCaseId === id) setSelectedMgmtCaseId('');
+    } catch (e: any) {
+      console.error(e);
+      alert("حدث خطأ أثناء حذف القضية.");
     }
   };
 
@@ -998,36 +1070,124 @@ export default function Home() {
 
         {/* TAB 4: Case Tracking Management */}
         {activeTab === 'cases_mgmt' && (
-          <div style={{ padding: '30px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '800px', margin: '0 auto', width: '100%', direction: 'rtl' }}>
+          <div style={{ padding: '30px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1000px', margin: '0 auto', width: '100%', direction: 'rtl' }}>
             
-            <div style={{ backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <h3 style={{ color: 'var(--accent-color)', fontSize: '1.2rem', margin: 0, fontWeight: 'bold' }}>تفعيل تتبع قضية للموكل</h3>
-              
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>اختر القضية المحددة للتعديل</label>
-                <select 
-                  value={selectedMgmtCaseId} 
-                  onChange={(e) => handleSelectMgmtCase(e.target.value)}
-                  style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', outline: 'none', fontSize: '0.95rem' }}
-                >
-                  <option value="">-- اختر من قضايا المحادثة الحالية --</option>
-                  {cases.map((c) => (
-                    <option key={c.id} value={c.id}>{c.title}</option>
-                  ))}
-                </select>
-              </div>
+            {/* List of client cases */}
+            {!isAddingNewClientCase && !selectedMgmtCaseId ? (
+              <div style={{ backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ color: 'var(--accent-color)', fontSize: '1.2rem', margin: 0, fontWeight: 'bold' }}>إدارة قضايا تتبع الموكلين</h3>
+                  <button 
+                    onClick={handleAddNewClientCaseClick}
+                    style={{ padding: '8px 16px', backgroundColor: 'var(--accent-color)', color: 'var(--bg-color)', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+                  >
+                    <Plus size={16} /> إضافة قضية تتبع جديدة
+                  </button>
+                </div>
 
-              {selectedMgmtCaseId && (
-                <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                  
+                {clientCases.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '40px 0', fontSize: '0.95rem' }}>لا توجد قضايا تتبع مضافة حالياً لموقعك الإلكتروني.</p>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right', fontSize: '0.9rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                          <th style={{ padding: '12px' }}>عنوان القضية</th>
+                          <th style={{ padding: '12px' }}>رقم القضية</th>
+                          <th style={{ padding: '12px' }}>اسم الموكل</th>
+                          <th style={{ padding: '12px' }}>رقم الهاتف</th>
+                          <th style={{ padding: '12px' }}>الحالة</th>
+                          <th style={{ padding: '12px' }}>الجلسة القادمة</th>
+                          <th style={{ padding: '12px', textAlign: 'center' }}>إجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {clientCases.map((c) => (
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '12px', fontWeight: 'bold' }}>{c.title}</td>
+                            <td style={{ padding: '12px', direction: 'ltr', textAlign: 'right' }}>{c.case_number}</td>
+                            <td style={{ padding: '12px' }}>{c.client_name}</td>
+                            <td style={{ padding: '12px', direction: 'ltr', textAlign: 'right' }}>{c.client_phone}</td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: 'var(--accent-color)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>
+                                {c.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              {c.next_session_date ? new Date(c.next_session_date).toLocaleDateString('ar-EG') : 'غيرحدد'}
+                            </td>
+                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                                <button 
+                                  onClick={() => handleSelectMgmtCase(c.id)}
+                                  style={{ padding: '5px', backgroundColor: 'transparent', border: '1px solid #3498db', color: '#3498db', borderRadius: '4px', cursor: 'pointer' }}
+                                  title="تعديل"
+                                >
+                                  <Edit size={12} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteClientCase(c.id)}
+                                  style={{ padding: '5px', backgroundColor: 'transparent', border: '1px solid #e74c3c', color: '#e74c3c', borderRadius: '4px', cursor: 'pointer' }}
+                                  title="حذف"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Add/Edit Form */
+              <div style={{ backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '15px' }}>
+                  <h3 style={{ color: 'var(--accent-color)', fontSize: '1.2rem', margin: 0, fontWeight: 'bold' }}>
+                    {isAddingNewClientCase ? 'إضافة قضية تتبع جديدة' : 'تعديل بيانات قضية التتبع'}
+                  </h3>
+                  <button 
+                    onClick={() => { setIsAddingNewClientCase(false); setSelectedMgmtCaseId(''); }}
+                    style={{ padding: '6px 12px', backgroundColor: 'var(--user-msg-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '4px', fontSize: '0.8rem' }}
+                  >
+                    إلغاء والعودة للقائمة
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                     <div>
-                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>رقم القضية في المحكمة (Case ID)</label>
+                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>اسم/موضوع القضية</label>
+                      <input 
+                        type="text" 
+                        value={mgmtTitle} 
+                        onChange={(e) => setMgmtTitle(e.target.value)}
+                        placeholder="مثال: قضية طلاق رقم 52 لسنة 2026" 
+                        style={{ width: '100%', padding: '10px 15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>رقم القضية في المحكمة (التتبع)</label>
                       <input 
                         type="text" 
                         value={mgmtCaseNumber} 
                         onChange={(e) => setMgmtCaseNumber(e.target.value)}
                         placeholder="مثال: CASE-20043" 
+                        style={{ width: '100%', padding: '10px 15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>اسم الموكل</label>
+                      <input 
+                        type="text" 
+                        value={mgmtClientName} 
+                        onChange={(e) => setMgmtClientName(e.target.value)}
+                        placeholder="أدخل اسم العميل ثلاثي" 
                         style={{ width: '100%', padding: '10px 15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', outline: 'none' }}
                       />
                     </div>
@@ -1037,7 +1197,7 @@ export default function Home() {
                         type="tel" 
                         value={mgmtClientPhone} 
                         onChange={(e) => setMgmtClientPhone(e.target.value)}
-                        placeholder="رقم الهاتف للتحقق أثناء الاستعلام" 
+                        placeholder="رقم الهاتف الذي يدخله الموكل للتحقق" 
                         style={{ width: '100%', padding: '10px 15px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', outline: 'none', direction: 'ltr', textAlign: 'right' }}
                       />
                     </div>
@@ -1082,12 +1242,9 @@ export default function Home() {
                   >
                     {saveLoading ? <Loader2 className="spinner" size={18} /> : <><Save size={18} /> حفظ تفاصيل التتبع</>}
                   </button>
-
                 </div>
-              )}
-
-            </div>
-
+              </div>
+            )}
           </div>
         )}
 
