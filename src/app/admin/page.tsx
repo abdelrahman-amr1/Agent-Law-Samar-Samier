@@ -16,6 +16,11 @@ export default function AdminDashboard() {
   const [newUserName, setNewUserName] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('123456');
+  const [newUserSubdomain, setNewUserSubdomain] = useState('');
+  const [newUserTitle, setNewUserTitle] = useState('');
+  const [newUserPublicPhone, setNewUserPublicPhone] = useState('');
+  const [newUserOfficeAddress, setNewUserOfficeAddress] = useState('');
+  const [newUserBio, setNewUserBio] = useState('');
   const [creatingUser, setCreatingUser] = useState(false);
 
   // Toast State
@@ -29,6 +34,11 @@ export default function AdminDashboard() {
   const [editPassword, setEditPassword] = useState('');
   const [editQueryLimit, setEditQueryLimit] = useState(150);
   const [editQueriesUsed, setEditQueriesUsed] = useState(0);
+  const [editSubdomain, setEditSubdomain] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editPublicPhone, setEditPublicPhone] = useState('');
+  const [editOfficeAddress, setEditOfficeAddress] = useState('');
+  const [editBio, setEditBio] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -208,7 +218,12 @@ export default function AdminDashboard() {
         body: JSON.stringify({
           full_name: newUserName,
           email: newUserEmail,
-          password: newUserPassword
+          password: newUserPassword,
+          subdomain: newUserSubdomain.trim().toLowerCase() || undefined,
+          title: newUserTitle || undefined,
+          public_phone: newUserPublicPhone || undefined,
+          office_address: newUserOfficeAddress || undefined,
+          bio: newUserBio || undefined
         })
       });
 
@@ -222,6 +237,11 @@ export default function AdminDashboard() {
       setNewUserName('');
       setNewUserEmail('');
       setNewUserPassword('123456');
+      setNewUserSubdomain('');
+      setNewUserTitle('');
+      setNewUserPublicPhone('');
+      setNewUserOfficeAddress('');
+      setNewUserBio('');
       fetchLawyersAndStats(); // Refresh the list
     } catch (err: any) {
       showToast(`خطأ: ${err.message}`, 'error');
@@ -260,7 +280,12 @@ export default function AdminDashboard() {
           email: editEmail,
           password: editPassword || undefined,
           query_limit: editQueryLimit,
-          queries_used: editQueriesUsed
+          queries_used: editQueriesUsed,
+          subdomain: editSubdomain.trim().toLowerCase() || null,
+          title: editTitle || null,
+          public_phone: editPublicPhone || null,
+          office_address: editOfficeAddress || null,
+          bio: editBio || null
         })
       });
       const result = await res.json();
@@ -508,6 +533,55 @@ export default function AdminDashboard() {
                 style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }}
               />
             </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>النطاق الفرعي (Subdomain)</label>
+              <input 
+                type="text" 
+                placeholder="مثال: samarsamier"
+                value={newUserSubdomain}
+                onChange={e => setNewUserSubdomain(e.target.value)}
+                style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>اسم المكتب (Title)</label>
+              <input 
+                type="text" 
+                placeholder="مكتب الدكتورة سمر سمير للمحاماة"
+                value={newUserTitle}
+                onChange={e => setNewUserTitle(e.target.value)}
+                style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>رقم هاتف التواصل العام</label>
+              <input 
+                type="text" 
+                placeholder="01110487889"
+                value={newUserPublicPhone}
+                onChange={e => setNewUserPublicPhone(e.target.value)}
+                style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>عنوان المكتب بالتفصيل</label>
+              <input 
+                type="text" 
+                placeholder="القاهرة، الدقي، شارع التحرير"
+                value={newUserOfficeAddress}
+                onChange={e => setNewUserOfficeAddress(e.target.value)}
+                style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>نبذة عن المحامي أو المكتب</label>
+              <textarea 
+                placeholder="اكتب نبذة مختصرة عن المكتب وسنوات الخبرة..."
+                value={newUserBio}
+                onChange={e => setNewUserBio(e.target.value)}
+                style={{ width: '100%', height: '80px', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'none' }}
+              />
+            </div>
             <button 
               type="submit" 
               disabled={creatingUser}
@@ -596,6 +670,11 @@ export default function AdminDashboard() {
                         setEditPassword(''); 
                         setEditQueryLimit(l.query_limit || 150);
                         setEditQueriesUsed(l.queries_used || 0);
+                        setEditSubdomain(l.subdomain || '');
+                        setEditTitle(l.title || '');
+                        setEditPublicPhone(l.public_phone || '');
+                        setEditOfficeAddress(l.office_address || '');
+                        setEditBio(l.bio || '');
                         setEditModalOpen(true); 
                       }} style={{ background: 'none', border: 'none', color: '#3498db', cursor: 'pointer', padding: '5px' }} title="تعديل البيانات"><Edit size={18} /></button>
                       <button onClick={() => handleDeleteUser(l.id)} disabled={isDeleting} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: isDeleting ? 'not-allowed' : 'pointer', padding: '5px' }} title="حذف الحساب نهائياً"><Trash2 size={18} /></button>
@@ -614,7 +693,7 @@ export default function AdminDashboard() {
       {/* Edit User Modal */}
       {editModalOpen && (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setEditModalOpen(false); }}>
-          <div className="modal-content" style={{ maxWidth: '400px' }}>
+          <div className="modal-content" style={{ maxWidth: '500px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, color: 'var(--accent-color)' }}>تعديل بيانات المحامي</h3>
               <button onClick={() => setEditModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
@@ -635,6 +714,26 @@ export default function AdminDashboard() {
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>الأسئلة المستخدمة حالياً</label>
                 <input type="number" required value={editQueriesUsed} onChange={e => setEditQueriesUsed(parseInt(e.target.value) || 0)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>النطاق الفرعي (Subdomain)</label>
+                <input type="text" value={editSubdomain} onChange={e => setEditSubdomain(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>اسم المكتب (Title)</label>
+                <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>رقم الهاتف العام</label>
+                <input type="text" value={editPublicPhone} onChange={e => setEditPublicPhone(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', direction: 'ltr' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>العنوان بالتفصيل</label>
+                <input type="text" value={editOfficeAddress} onChange={e => setEditOfficeAddress(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>نبذة عن المحامي/المكتب</label>
+                <textarea value={editBio} onChange={e => setEditBio(e.target.value)} style={{ width: '100%', height: '80px', padding: '10px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'none' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>كلمة المرور الجديدة (اختياري)</label>

@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
 
     // 3. Extract payload
-    const { email, password, full_name } = await req.json();
+    const { email, password, full_name, subdomain, title, bio, office_address, public_phone } = await req.json();
 
     if (!email || !password || !full_name) {
       return NextResponse.json({ error: 'Email, password, and full_name are required' }, { status: 400 });
@@ -54,7 +54,12 @@ export async function POST(req: Request) {
       id: newUserId,
       full_name,
       email,
-      role: 'lawyer'
+      role: 'lawyer',
+      subdomain: subdomain ? subdomain.trim().toLowerCase() : null,
+      title: title || null,
+      bio: bio || null,
+      office_address: office_address || null,
+      public_phone: public_phone || null
     });
 
     if (profileError) {
@@ -83,7 +88,7 @@ export async function PUT(req: Request) {
     const { data: profile } = await normalSupabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const { targetUserId, full_name, email, password, query_limit, queries_used } = await req.json();
+    const { targetUserId, full_name, email, password, query_limit, queries_used, subdomain, title, bio, office_address, public_phone } = await req.json();
     if (!targetUserId) return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
 
     const updateData: any = {};
@@ -91,6 +96,11 @@ export async function PUT(req: Request) {
     if (email) updateData.email = email;
     if (query_limit !== undefined) updateData.query_limit = query_limit;
     if (queries_used !== undefined) updateData.queries_used = queries_used;
+    if (subdomain !== undefined) updateData.subdomain = subdomain ? subdomain.trim().toLowerCase() : null;
+    if (title !== undefined) updateData.title = title || null;
+    if (bio !== undefined) updateData.bio = bio || null;
+    if (office_address !== undefined) updateData.office_address = office_address || null;
+    if (public_phone !== undefined) updateData.public_phone = public_phone || null;
 
     if (Object.keys(updateData).length > 0) {
       const { error } = await supabaseAdmin.from('profiles').update(updateData).eq('id', targetUserId);
