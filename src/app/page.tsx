@@ -391,6 +391,23 @@ export default function Home() {
     printWindow.document.close();
   };
 
+  const handleDownloadWord = (content: string) => {
+    let printContent = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    printContent = printContent.replace(/\n/g, '<br />');
+
+    const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>مذكرة دفاع</title></head><body dir='rtl' style='font-family: Arial, sans-serif; font-size: 14pt; line-height: 1.8;'>";
+    const footer = "</body></html>";
+    const sourceHTML = header + printContent + footer;
+    
+    const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+    const fileDownload = document.createElement("a");
+    document.body.appendChild(fileDownload);
+    fileDownload.href = source;
+    fileDownload.download = 'مذكرة_دفاع.doc';
+    fileDownload.click();
+    document.body.removeChild(fileDownload);
+  };
+
   // Subdomain Settings Save
   const handleSaveSubdomain = async () => {
     setSaveLoading(true);
@@ -807,7 +824,26 @@ export default function Home() {
                   </div>
                   
                   {msg.role === 'agent' && msg.id !== 'welcome' && (
-                    <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                      <button 
+                        onClick={() => handleDownloadWord(msg.content)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          backgroundColor: '#2b579a',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          fontSize: '0.9rem'
+                        }}
+                        title="تحميل المذكرة بصيغة ملف وورد للتعديل"
+                      >
+                        <Download size={16} /> تحميل وورد (Word)
+                      </button>
                       <button 
                         onClick={() => handleDownloadMemo(msg.content)}
                         style={{
